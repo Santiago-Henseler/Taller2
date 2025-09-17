@@ -2,12 +2,20 @@ defmodule Mweb.Ruta do
   import Plug.Conn
 
   def init(options) do
-    IO.inspect(options, label: "init: ")
-    options
+    IO.inspect(options, label: "init server")
+    {:ok, pid} = GenServer.start(Mafia, "")
+    pid
   end
 
-  def call(conn = %{method: "GET"}, _options) do
-    {players, killers} = Mafia.main()
+  # Recibo un nuevo jugador
+  def call(conn = %{method: "POST", path_info: ["addPlayer", id]}, options) do
+    GenServer.cast(options, {:addPlayer, id})
+    send_whit_cors(conn, 201, id)
+  end
+
+  def call(conn = %{method: "GET"}, options) do
+    IO.puts "conexion : #{inspect(conn)}"
+    {players, killers} = GenServer.call(options, {:getCharacters})
     jugadores = %{
       aldeanos: players,
       mafiosos: killers

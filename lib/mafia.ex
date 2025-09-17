@@ -2,6 +2,7 @@ defmodule Mafia do
   @moduledoc """
   Documentation for `Mafia`.
   """
+  use GenServer
 
   defp get_players(pending_players) when pending_players >= 1 do
     get_players([],pending_players)
@@ -28,8 +29,27 @@ defmodule Mafia do
   end
 
 
-  def main do
-    {players, killers} = get_characters(["Juan", "Raul", "Santi", "Marcos", "Maria", "Marta","Miguel", "Julian", "Melanie", "Loan"], [],2)
-    {players, killers}
+  # Funciones para implementar GenServer(para correr este modulo como un proceso)
+  def init(_params) do
+    {:ok, %{usuarios: []}}
   end
+
+  def handle_info(_msg, state) do
+    {:noreply, state}
+  end
+
+  def handle_cast({:addPlayer, id}, state) do
+    state = %{state | usuarios: state.usuarios ++ [id]}
+    IO.inspect state
+    {:noreply, state}
+  end
+
+  def handle_call({:getCharacters}, pid, state) do
+    {:reply, get_characters(state.usuarios, [],2), state}
+  end
+
+  def handle_call(request, _pid, state) do
+    {:reply, request, state}
+  end
+
 end
