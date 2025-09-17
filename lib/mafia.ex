@@ -29,9 +29,12 @@ defmodule Mafia do
   end
 
 
-  # Funciones para implementar GenServer(para correr este modulo como un proceso)
+  ### Funciones para implementar GenServer(para correr este modulo como un proceso) ###
+  #   Las cast sirven para modificar la variable que persiste
+  #   Las call son iguales que las call pero tambien devuelven info en su return
+
   def init(_params) do
-    {:ok, %{usuarios: []}}
+    {:ok, %{usuarios: []}} # Variable que va a persistir con cada llamada
   end
 
   def handle_info(_msg, state) do
