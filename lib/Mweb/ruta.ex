@@ -3,23 +3,32 @@ defmodule Mweb.Ruta do
 
   def init(options) do
     IO.inspect(options, label: "init server")
-    {:ok, pid} = GenServer.start(Mafia, "")
+    {:ok, pid} = GenServer.start(RoomStore, "")
     pid
   end
 
   # Recibo un nuevo jugador
-  def call(conn = %{method: "POST", path_info: ["addPlayer", id]}, options) do
-    GenServer.cast(options, {:addPlayer, id})
+  def call(conn = %{method: "POST", path_info: [roomId, "addPlayer", id]}, roomStore) do
+    roomPid = GenServer.call(roomStore, {:getRoom, roomId})
+
+    GenServer.cast(roomPid, {:addPlayer, id})
     send_whit_cors(conn, 201, id)
   end
 
-  def call(conn = %{method: "GET"}, options) do
-    IO.puts "conexion : #{inspect(conn)}"
-    {players, killers} = GenServer.call(options, {:getCharacters})
-    jugadores = %{
-      aldeanos: players,
-      mafiosos: killers
-    }
+  def call(conn = %{method: "POST", path_info: ["newRoom", id]}, roomStore) do
+    roomId = Enum.random(0.. 2**63)
+    {:ok, roomPid} = GenServer.start(Room, roomId)
+
+    GenServer.cast(roomStore, {:addRoom, roomId, roomPid})
+    GenServer.cast(roomPid, {:addPlayer, id})
+
+    send_whit_cors(conn, 201, Integer.to_string(roomId))
+  end
+
+  def call(conn = %{method: "GET", path_info: [roomId]}, roomStore) do
+    roomPid = GenServer.call(roomStore, {:getRoom, roomId})
+
+    jugadores = GenServer.call(roomPid, {:getCharacters})
     {:ok, json} = Jason.encode(jugadores)
     send_whit_cors(conn, 200, json)
   end

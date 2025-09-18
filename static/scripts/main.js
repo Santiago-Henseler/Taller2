@@ -1,3 +1,18 @@
+let roomId;
+
+window.onload = () =>{
+    const options = {
+        method: "POST",
+      };
+    fetch("http://localhost:4000/newRoom/Juan", options)
+    .then(response => response.text())
+    .then(data => {
+        roomId = data;
+        alert(roomId)
+    });
+
+}
+
 function addPlayers(){
 
     const name = document.getElementById("jugador");
@@ -5,7 +20,7 @@ function addPlayers(){
     const options = {
         method: "POST",
       };
-    fetch("http://localhost:4000/addPlayer/"+name.value, options)
+    fetch("http://localhost:4000/"+roomId+"/addPlayer/"+name.value, options)
     .then(response => response.text())
     .then(data => {
         alert("el jugador " + data + " fue agregado con exito")
@@ -22,15 +37,10 @@ function getCharacters(){
         method: "GET",
       };
       
-    fetch("http://localhost:4000", options)
+    fetch("http://localhost:4000/"+roomId, options)
         .then(response => response.json())
         .then(data => {
-            container.innerHTML = "";
-            container.innerHTML += "<h1>Aldeanos:</h1>";
-            data["aldeanos"].map(a => container.innerHTML += `<p> ${a} </p>`);
-
-            container.innerHTML += "<h1>Mafiosos:</h1>";
-            data["mafiosos"].map(a => container.innerHTML += `<p> ${a} </p>`);
+           alert(data)
         });
 
 
