@@ -6,7 +6,23 @@ function initSession(){
     playerName = labelName.value;
 
     document.getElementById("session").style.display = "none";
-    document.getElementById("roomSelection").style.display = "inline";
+    getRooms();
+}
+
+function getRooms(){
+
+    const roomSelection = document.getElementById("roomSelection")
+    roomSelection.style.display = "inline";
+
+    fetch("http://localhost:4000/rooms", {method: "GET"})
+    .then(response => response.json())
+    .then(data => {
+        data.map(id => roomSelection.innerHTML += `<div id="${id}">
+                                                        <p>Room: ${id}</p>
+                                                        <button style="height: 50px; width: 100px;" onclick="joinRoom(${id})">Unirme</button>
+                                                    </div>`)
+    });
+
 }
 
 function createRoom(){
@@ -22,15 +38,19 @@ function createRoom(){
 
 }
 
-function joinRoom(){
+function joinRoom(id){
 
-    roomId = document.getElementById("roomId").value;
+    roomId = id
 
     fetch("http://localhost:4000/"+roomId+"/joinRoom/"+playerName, {method: "POST"})
     .then(response => response.text())
     .then(data => {
         header.innerHTML += `<center><h1>Room Id: ${roomId}</h1></center>`
     });
+
+    header.innerHTML += '<button style="height: 50px; width: 100px;" onclick="getCharacters()">ver jugadores</button>'
+
+    document.getElementById("roomSelection").style.display = "none"
 }
 
 function getCharacters(){
@@ -46,6 +66,4 @@ function getCharacters(){
         .then(data => {
            alert(data)
         });
-
-
 }

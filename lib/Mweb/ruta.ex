@@ -16,13 +16,22 @@ defmodule Mweb.Ruta do
   end
 
   def call(conn = %{method: "POST", path_info: ["newRoom", id]}, roomStore) do
-    roomId = Enum.random(0.. 2**63)
+    roomId = Enum.random(0.. 2**20)
     {:ok, roomPid} = GenServer.start(Room, roomId)
 
     GenServer.cast(roomStore, {:addRoom, roomId, roomPid})
     GenServer.cast(roomPid, {:addPlayer, id})
 
     send_whit_cors(conn, 201, Integer.to_string(roomId))
+  end
+
+  def call(conn = %{method: "GET", path_info: ["rooms"]}, roomStore) do
+    roomsMap = GenServer.call(roomStore, {:getRooms})
+    rooms = Map.keys(roomsMap)
+
+    {:ok, json} = Jason.encode(rooms)
+
+    send_whit_cors(conn, 200, json)
   end
 
   def call(conn = %{method: "GET", path_info: [roomId]}, roomStore) do
