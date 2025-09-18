@@ -8,7 +8,7 @@ defmodule Mweb.Ruta do
   end
 
   # Recibo un nuevo jugador
-  def call(conn = %{method: "POST", path_info: [roomId, "addPlayer", id]}, roomStore) do
+  def call(conn = %{method: "POST", path_info: [roomId, "joinRoom", id]}, roomStore) do
     roomPid = GenServer.call(roomStore, {:getRoom, roomId})
 
     GenServer.cast(roomPid, {:addPlayer, id})

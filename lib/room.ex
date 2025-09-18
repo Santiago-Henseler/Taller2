@@ -17,7 +17,6 @@ defmodule Room do
   end
 
   def handle_cast({:addPlayer, id}, state) do
-    IO.puts("AAA")
     state = %{state | usuarios: state.usuarios ++ [id]}
     IO.inspect state
     {:noreply, state}

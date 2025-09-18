@@ -3,13 +3,21 @@
     
 </head>
 <body>
-    <div>
+    <div id="header">
+    </div>
+    <div id="session">
+        <label>Indica tu nombre:</label>
         <input id="jugador" type="text" >
-        <button style="height: 50px; width: 100px;" onclick="addPlayers()">Agregar jugador</button>
+        <button style="height: 50px; width: 100px;" onclick="initSession()">Iniciar sesion</button>
     </div>
-    <div>
-        <button style="height: 50px; width: 100px;" onclick="getCharacters()">Traer jugadores</button>
+
+    <div id="roomSelection" style="display: none;">
+        <label>Indica id de room:</label>
+        <input id="roomId" type="text" >
+        <button style="height: 50px; width: 100px;" onclick="joinRoom()">Unirte</button>
+        <button style="height: 50px; width: 100px;" onclick="createRoom()">Crear Room</button>
     </div>
+
     <div id="players"></div>
 
     <script src="../scripts/main.js"></script>

@@ -1,32 +1,36 @@
 let roomId;
+let playerName;
 
-window.onload = () =>{
-    const options = {
-        method: "POST",
-      };
-    fetch("http://localhost:4000/newRoom/Juan", options)
+function initSession(){
+    const labelName = document.getElementById("jugador");
+    playerName = labelName.value;
+
+    document.getElementById("session").style.display = "none";
+    document.getElementById("roomSelection").style.display = "inline";
+}
+
+function createRoom(){
+
+    const header = document.getElementById("header");
+
+    fetch("http://localhost:4000/newRoom/"+ playerName, {method: "POST"})
     .then(response => response.text())
     .then(data => {
         roomId = data;
-        alert(roomId)
+        header.innerHTML += `<center><h1>Room Id: ${roomId}</h1></center>`
     });
 
 }
 
-function addPlayers(){
+function joinRoom(){
 
-    const name = document.getElementById("jugador");
+    roomId = document.getElementById("roomId").value;
 
-    const options = {
-        method: "POST",
-      };
-    fetch("http://localhost:4000/"+roomId+"/addPlayer/"+name.value, options)
+    fetch("http://localhost:4000/"+roomId+"/joinRoom/"+playerName, {method: "POST"})
     .then(response => response.text())
     .then(data => {
-        alert("el jugador " + data + " fue agregado con exito")
+        header.innerHTML += `<center><h1>Room Id: ${roomId}</h1></center>`
     });
-
-    name.value = "";
 }
 
 function getCharacters(){
