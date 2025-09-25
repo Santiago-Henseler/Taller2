@@ -1,4 +1,7 @@
-defmodule RoomStore do
+defmodule Mweb.RoomManager.RoomStore do
+  @moduledoc """
+    Modulo encargado de manterne las distintas rooms almacendas por {roomId: roomPid}
+  """
   use GenServer
 
   def init(_params) do
@@ -15,7 +18,7 @@ defmodule RoomStore do
     {:noreply, rooms}
   end
 
-  def handle_cast({:addRoom, roomId, roomPid}, rooms)  do
+  def handle_cast({:addRoom, roomId, roomPid}, rooms) do
     rooms = Map.put(rooms, String.to_integer(roomId), roomPid)
     {:noreply, rooms}
   end

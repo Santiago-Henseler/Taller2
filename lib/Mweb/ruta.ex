@@ -1,31 +1,30 @@
 defmodule Mweb.Ruta do
   import Plug.Conn
 
-  def init(options) do
-    IO.inspect(options, label: "init server")
-    {:ok, pid} = GenServer.start(RoomStore, "")
-    pid
+  def init(roomStore) do
+    roomStore
   end
 
   # Recibo un nuevo jugador
-  def call(conn = %{method: "POST", path_info: [roomId, "joinRoom", id]}, roomStore) do
+  def call(conn = %{method: "POST", path_info: [roomId, "joinRoom", id]}, [roomStore]) do
     roomPid = GenServer.call(roomStore, {:getRoom, roomId})
 
-    GenServer.cast(roomPid, {:addPlayer, id})
-    send_whit_cors(conn, 201, id)
+    GenServer.cast(roomPid, {:addPlayer, id, conn})
+
+    send_whit_cors(conn, 201, roomId)
   end
 
-  def call(conn = %{method: "POST", path_info: ["newRoom", id]}, roomStore) do
+  def call(conn = %{method: "POST", path_info: ["newRoom", id]}, [roomStore]) do
     roomId = Enum.random(0.. 2**20)
-    {:ok, roomPid} = GenServer.start(Room, roomId)
+    {:ok, roomPid} = GenServer.start(Mweb.RoomManager.Room, roomId)
 
     GenServer.cast(roomStore, {:addRoom, roomId, roomPid})
-    GenServer.cast(roomPid, {:addPlayer, id})
+    GenServer.cast(roomPid, {:addPlayer, id, conn})
 
     send_whit_cors(conn, 201, Integer.to_string(roomId))
   end
 
-  def call(conn = %{method: "GET", path_info: ["rooms"]}, roomStore) do
+  def call(conn = %{method: "GET", path_info: ["rooms"]}, [roomStore]) do
     roomsMap = GenServer.call(roomStore, {:getRooms})
     rooms = Map.keys(roomsMap)
 
@@ -34,12 +33,16 @@ defmodule Mweb.Ruta do
     send_whit_cors(conn, 200, json)
   end
 
-  def call(conn = %{method: "GET", path_info: [roomId]}, roomStore) do
+  def call(conn = %{method: "GET", path_info: [roomId]}, [roomStore]) do
     roomPid = GenServer.call(roomStore, {:getRoom, roomId})
 
     jugadores = GenServer.call(roomPid, {:getCharacters})
     {:ok, json} = Jason.encode(jugadores)
     send_whit_cors(conn, 200, json)
+  end
+
+  def call(conn, _opts) do
+    send_whit_cors(conn, 404, "Not found")
   end
 
   def send_whit_cors(conn, status, body) when is_number(status) do

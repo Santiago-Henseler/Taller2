@@ -5,11 +5,26 @@ defmodule MWeb.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [
-      Plug.Cowboy.child_spec(plug: Mweb.Ruta, scheme: :http),
+
+    {:ok, pid} = GenServer.start(Mweb.RoomManager.RoomStore, "")
+
+    dispatch = [
+      {:_,
+       [
+         {"/ws/[...]", Mweb.WSroom, [pid]},
+         {:_, Plug.Cowboy.Handler, {Mweb.Ruta, [pid]}}
+       ]}
     ]
 
-    opts = [strategy: :one_for_one, name: MWeb.Supervisor]
+    children = [
+      {Plug.Cowboy,
+       scheme: :http,
+       plug: Mweb.Ruta,
+       options: [port: 4000, dispatch: dispatch]}
+    ]
+
+    opts = [strategy: :one_for_one, name: Mweb.Supervisor]
     Supervisor.start_link(children, opts)
   end
+
 end

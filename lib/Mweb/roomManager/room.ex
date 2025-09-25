@@ -1,24 +1,25 @@
-defmodule Room do
+defmodule Mweb.RoomManager.Room do
   @moduledoc """
-  Documentation for `Room`.
+    Modulo encargado en manejar las rooms
   """
   use GenServer
 
-  ### Funciones para implementar GenServer(para correr este modulo como un proceso) ###
-  #   Las cast sirven para modificar la variable que persiste
-  #   Las call son iguales que las call pero tambien devuelven info en su return
-
   def init(_params) do
-    {:ok, %{usuarios: []}}
+    {:ok, %{
+            usuarios: [], # Guardo todas las conexiones para un broadcast (si es necesario)
+            aldeanos: [],
+            medicos:  [],
+            mafiosos: [],
+            }}
   end
 
   def handle_info(_msg, state) do
     {:noreply, state}
   end
 
-  def handle_cast({:addPlayer, id}, state) do
+  def handle_cast({:addPlayer, id, conn}, state) do
+    IO.inspect conn
     state = %{state | usuarios: state.usuarios ++ [id]}
-    IO.inspect state
     {:noreply, state}
   end
 

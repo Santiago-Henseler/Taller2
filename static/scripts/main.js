@@ -67,3 +67,16 @@ function getCharacters(){
            alert(data)
         });
 }
+
+function foo(){
+    let socket = new WebSocket("ws://localhost:4000/ws/path_info")
+
+    socket.onopen = () => {
+    console.log("Conectado!")
+    socket.send("hola servidor")
+    }
+
+    socket.onmessage = (event) => {
+    console.log("Mensaje del server:", event.data)
+    }
+}
