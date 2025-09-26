@@ -25,7 +25,6 @@ defmodule Mweb.RoomManager.RoomStore do
 
   def handle_cast({:removeRoom, roomId}, rooms) do
     rooms = Map.delete(rooms, roomId)
-    IO.inspect rooms
     {:noreply, rooms}
   end
 
@@ -33,12 +32,12 @@ defmodule Mweb.RoomManager.RoomStore do
     {:reply, rooms, rooms}
   end
 
-  def handle_call({:getRoom, roomId}, _pid, rooms) when is_integer(roomId)  do
-    {:reply, rooms[roomId], rooms}
+  def handle_call({:getRoom, roomId}, _pid, rooms) when is_integer(roomId) do
+    {:reply, Map.get(rooms, roomId), rooms}
   end
 
-  def handle_call({:getRoom, roomId}, _pid, rooms) do
-    {:reply, rooms[String.to_integer(roomId)], rooms}
+  def handle_call({:getRoom, roomId}, _pid, rooms)   do
+    {:reply, Map.get(rooms, String.to_integer(roomId)), rooms}
   end
 
   def handle_call(request, _pid, rooms) do

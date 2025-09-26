@@ -2,7 +2,7 @@ defmodule  Mweb.WSroom do
   @behaviour :cowboy_websocket
 
   # Cuando un nuevo usuario se conecta a la room lo agrego
-  def init(req = %{peer: ip, path_info: [roomId, userId]}, [roomStore]) do
+  def init(req = %{pid: ip, path_info: [roomId, userId]}, [roomStore]) do
     roomPid = GenServer.call(roomStore, {:getRoom, roomId})
     GenServer.cast(roomPid, {:addPlayer, ip, userId})
 
@@ -20,7 +20,6 @@ defmodule  Mweb.WSroom do
         # Para mantener la conexion abierta
         {:reply, {:text, Jason.encode!(%{type: "pong"})}, roomStore}
       {:ok, data} ->
-        IO.inspect(data, label: "Mensaje en JSON")
         {:reply, {:text, "Echo: " <> data}, roomStore}
       _ ->
         {:ok, roomStore}
@@ -35,10 +34,12 @@ defmodule  Mweb.WSroom do
   def terminate(_reason, req, roomStore) do
     [_padd, _ws, roomId, userId] = String.split(req.path, "/")
 
+    # PROBLEMA no puedo obtener el PID para luego borrarlo del room
+
     roomPid = GenServer.call(roomStore, {:getRoom, roomId})
     GenServer.cast(roomPid, {:removePlayer, req.peer, userId})
 
-    :ok
+    {:ok, roomStore}
   end
 
   def websocket_info(info, roomStore) do

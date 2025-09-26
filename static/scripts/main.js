@@ -46,7 +46,7 @@ function joinRoom(id){
     fetch("http://localhost:4000/"+roomId+"/joinRoom/", {method: "POST"})
     .then(response => response.text())
     .then(data => {
-        header.innerHTML += `<center><h1>Room Id: ${roomId}</h1></center>`
+        header.innerHTML += `<center><h1>Room Id: ${data}</h1></center>`
     });
 
     header.innerHTML += '<button style="height: 50px; width: 100px;" onclick="getCharacters()">ver jugadores</button>'

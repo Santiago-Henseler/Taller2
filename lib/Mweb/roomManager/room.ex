@@ -19,26 +19,36 @@ defmodule Mweb.RoomManager.Room do
     {:noreply, state}
   end
 
-  def handle_cast({:addPlayer, ip, userId}, state) do
-    id = %{userName: userId, ip: ip}
+  def handle_cast({:addPlayer, pid, userId}, state) do
+
+    for user <- state.usuarios do
+      send(user.pid, state.usuarios)
+    end
+    id = %{userName: userId, pid: pid}
     state = %{state | usuarios: state.usuarios ++ [id]}
     {:noreply, state}
   end
 
-  def handle_cast({:removePlayer, ip, userId}, state) do
-    id = %{userName: userId, ip: ip}
+  def handle_cast({:removePlayer, pid, userId}, state) do
+    id = %{userName: userId, pid: pid}
     state = %{state | usuarios: state.usuarios -- [id]}
 
     case length(state.usuarios) do
       0 ->  GenServer.cast(state.roomStorePid, {:removeRoom, state.roomId})
       _ -> :ok
     end
-
     {:noreply, state}
   end
 
   def handle_call({:getCharacters}, _pid, state) do
     {:reply, state.usuarios, state}
+  end
+
+  def handle_call({:canJoin}, _pid, state) do
+    case length(state.usuarios) do
+      10 ->  {:reply, false, state};
+      _  ->  {:reply, true,  state}
+    end
   end
 
   def handle_call(request, _pid, state) do
