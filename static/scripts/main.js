@@ -29,11 +29,12 @@ function createRoom(){
 
     const header = document.getElementById("header");
 
-    fetch("http://localhost:4000/newRoom/"+ playerName, {method: "POST"})
+    fetch("http://localhost:4000/newRoom/", {method: "POST"})
     .then(response => response.text())
     .then(data => {
         roomId = data;
         header.innerHTML += `<center><h1>Room Id: ${roomId}</h1></center>`
+        connectWebSocket();
     });
 
 }
@@ -42,7 +43,7 @@ function joinRoom(id){
 
     roomId = id
 
-    fetch("http://localhost:4000/"+roomId+"/joinRoom/"+playerName, {method: "POST"})
+    fetch("http://localhost:4000/"+roomId+"/joinRoom/", {method: "POST"})
     .then(response => response.text())
     .then(data => {
         header.innerHTML += `<center><h1>Room Id: ${roomId}</h1></center>`
@@ -51,6 +52,8 @@ function joinRoom(id){
     header.innerHTML += '<button style="height: 50px; width: 100px;" onclick="getCharacters()">ver jugadores</button>'
 
     document.getElementById("roomSelection").style.display = "none"
+
+    connectWebSocket();
 }
 
 function getCharacters(){
@@ -66,17 +69,24 @@ function getCharacters(){
         .then(data => {
            alert(data)
         });
+
+    
 }
 
-function foo(){
-    let socket = new WebSocket("ws://localhost:4000/ws/path_info")
+function connectWebSocket(){
+    let socket = new WebSocket("ws://localhost:4000/ws/"+roomId+"/"+playerName)
 
     socket.onopen = () => {
-    console.log("Conectado!")
-    socket.send("hola servidor")
+        socket.send("hola servidor")
+        setInterval(() => {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({type: "ping"}));
+            }
+        }, 25000);
     }
 
     socket.onmessage = (event) => {
-    console.log("Mensaje del server:", event.data)
+        console.log("Mensaje del server:", event.data)
     }
+
 }

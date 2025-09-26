@@ -5,21 +5,11 @@ defmodule Mweb.Ruta do
     roomStore
   end
 
-  # Recibo un nuevo jugador
-  def call(conn = %{method: "POST", path_info: [roomId, "joinRoom", id]}, [roomStore]) do
-    roomPid = GenServer.call(roomStore, {:getRoom, roomId})
-
-    GenServer.cast(roomPid, {:addPlayer, id, conn})
-
-    send_whit_cors(conn, 201, roomId)
-  end
-
-  def call(conn = %{method: "POST", path_info: ["newRoom", id]}, [roomStore]) do
+  def call(conn = %{method: "POST", path_info: ["newRoom"]}, [roomStore]) do
     roomId = Enum.random(0.. 2**20)
-    {:ok, roomPid} = GenServer.start(Mweb.RoomManager.Room, roomId)
+    {:ok, roomPid} = GenServer.start(Mweb.RoomManager.Room, [roomId, roomStore])
 
     GenServer.cast(roomStore, {:addRoom, roomId, roomPid})
-    GenServer.cast(roomPid, {:addPlayer, id, conn})
 
     send_whit_cors(conn, 201, Integer.to_string(roomId))
   end
