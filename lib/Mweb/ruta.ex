@@ -46,8 +46,8 @@ defmodule Mweb.Ruta do
   def call(conn = %{method: "GET", path_info: [roomId]},  _state) do
     roomPid = RoomStore.getRoom(roomId)
 
-    jugadores = GenServer.call(roomPid, {:getCharacters})
-    {:ok, json} = Jason.encode(jugadores)
+    jugadores = GenServer.call(roomPid, {:getPlayers})
+    {:ok, json} = Jason.encode(Enum.map(jugadores, fn p -> p.userName end))
     send_whit_cors(conn, 200, json)
   end
 

@@ -8,7 +8,8 @@ defmodule Mweb.RoomManager.Room do
   alias Lmafia.Mafia
 
   def init(roomId) do
-    {:ok, %{roomId: roomId, players: [] }}
+    {:ok, pid} = GenServer.start_link(Mafia, roomId)
+    {:ok, %{roomId: roomId, players: [], gameController: pid}}
   end
 
   def handle_info(_msg, state) do
@@ -16,12 +17,13 @@ defmodule Mweb.RoomManager.Room do
   end
 
   def handle_cast({:addPlayer, pid, userId}, state) do
-    id = %{userName: userId, pid: pid}
+    id = %{userName: userId, pid: pid, alive: true}
     state = %{state | players: state.players ++ [id]}
 
+    sendPlayers(state)
+
     if length(state.players) == 10 do
-      {:ok, pid} = GenServer.start_link(Mafia, state.roomId)
-      GenServer.cast(pid, {:start, state.players})
+      GenServer.cast(state.gameController, {:start, state.players})
     end
 
     {:noreply, state}
@@ -33,6 +35,8 @@ defmodule Mweb.RoomManager.Room do
 
     new_state = %{state | players: new_players}
 
+    sendPlayers(new_state)
+
     case length(new_state.players) do
       0 -> RoomStore.removeRoom(new_state.roomId)
       _ -> :ok
@@ -43,7 +47,7 @@ defmodule Mweb.RoomManager.Room do
   end
 
   def handle_call({:getPlayers}, _pid, state) do
-    {:reply, state.usuarios, state}
+    {:reply, state.players, state}
   end
 
   def handle_call({:canJoin}, _pid, state) do
@@ -56,5 +60,13 @@ defmodule Mweb.RoomManager.Room do
   def handle_call(request, _pid, state) do
     {:reply, request, state}
   end
+
+  defp sendPlayers(state) do
+    {:ok, json} = Jason.encode(%{type: "users", users: Enum.map(state.players, fn p -> p.userName end)})
+    for user <- state.players do
+      send(user.pid, {:msg, json})
+    end
+  end
+
 
 end

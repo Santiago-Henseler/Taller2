@@ -32,6 +32,7 @@ defmodule Mweb.RoomManager.RoomStore do
   end
 
   def handle_cast({:removeRoom, roomId}, rooms) do
+    # Deberia eliminar el proceso??
     rooms = Map.delete(rooms, roomId)
     {:noreply, rooms}
   end

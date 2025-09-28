@@ -1,10 +1,15 @@
 defmodule Lmafia.Mafia do
 
+  use GenServer
+
   defmodule State do
     def init, do: :init
+    def charSet, do: :charSet
+    def mafiaKill, do: :mafiaKill
+    def med1, do: :med1
+    def med2, do: :med2
+    def debate, do: :debate
   end
-
-  use GenServer
 
   def init(roomId) do
     {:ok,  %{
@@ -18,7 +23,6 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_cast({:start, players}, gameInfo) do
-    IO.puts "aca"
     gameInfo =
       if gameInfo.state == :init do
         gameInfo
@@ -27,6 +31,25 @@ defmodule Lmafia.Mafia do
       else
         gameInfo
       end
+    {:noreply, %{gameInfo | state: State.charSet()}}
+  end
+
+  def handle_call({:move, move},_pid, gameInfo) do
+
+    {:noreply, %{gameInfo | state: State.charSet()}}
+  end
+
+  def handle_info(:send, gameInfo) do
+
+    gameInfo = if gameInfo.state in [:charSet, :debate] do
+      Enum.each(gameInfo.mafiosos, fn x ->
+        if x.alive == true do
+          {:ok, json} = Jason.encode(%{type: "action", action: "selectVictim"})
+          send(x.pid, {:msg, json})
+        end
+      end)
+      %{gameInfo | state: State.mafiaKill()}
+    end
 
     {:noreply, gameInfo}
   end
@@ -46,16 +69,20 @@ defmodule Lmafia.Mafia do
   defp sendCharacterToPlayer(characters) do
 
     Enum.each(characters.aldeanos, fn x ->
-      send(x.pid, "Aldeano")
+      {:ok, json} = Jason.encode(%{type: "characterSet", character: "Aldeano"})
+      send(x.pid, {:msg, json})
     end)
     Enum.each(characters.medicos, fn x ->
-      send(x.pid, "Medico")
+      {:ok, json} = Jason.encode(%{type: "characterSet", character: "Medico"})
+      send(x.pid, {:msg, json})
     end)
     Enum.each(characters.mafiosos, fn x ->
-      send(x.pid, "Mafioso")
+      {:ok, json} = Jason.encode(%{type: "characterSet", character: "Mafioso"})
+      send(x.pid, {:msg, json})
     end)
     Enum.each(characters.policias, fn x ->
-      send(x.pid, "Policia")
+      {:ok, json} = Jason.encode(%{type: "characterSet", character: "Policia"})
+      send(x.pid, {:msg, json})
     end)
 
     characters

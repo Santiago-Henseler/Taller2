@@ -23,7 +23,12 @@ defmodule  Mweb.WSroom do
       {:ok, %{"type" => "ping"}} ->
         # Para mantener la conexion abierta
         {:reply, {:text, Jason.encode!(%{type: "pong"})}, status}
+      {:ok, %{"type" => "move"}} ->
+
+
+        {:reply, {:text, "Echo: "}, status}
       {:ok, data} ->
+        IO.inspect data
         {:reply, {:text, "Echo: " <> data}, status}
       _ ->
         {:ok, status}
@@ -38,11 +43,15 @@ defmodule  Mweb.WSroom do
   def terminate(_reason, req, _status) do
     [_padd, _ws, roomId, userId] = String.split(req.path, "/")
 
-    # PROBLEMA no puedo obtener el PID para luego borrarlo del room
+    # PROBLEMA borro por nombre => si hay nombres repetidos borro a todos los q tienen ese nombre
     roomPid = RoomStore.getRoom(roomId)
     GenServer.cast(roomPid, {:removePlayer, userId})
 
     :ok
+  end
+
+  def websocket_info({:msg, payload}, state) do
+    {:reply, {:text, payload}, state}
   end
 
   def websocket_info(info, roomStore) do
