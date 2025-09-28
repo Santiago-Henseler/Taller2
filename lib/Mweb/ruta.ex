@@ -1,13 +1,15 @@
 defmodule Mweb.Ruta do
   import Plug.Conn
 
-  def init(roomStore) do
-    roomStore
+  alias Mweb.RoomManager.RoomStore
+
+  def init(state) do
+    state
   end
 
   # Endpoint para chequear si se puede unir a una room
-  def call(conn = %{method: "POST", path_info: [roomId, "joinRoom"]}, [roomStore]) do
-    roomPid = GenServer.call(roomStore, {:getRoom, roomId})
+  def call(conn = %{method: "POST", path_info: [roomId, "joinRoom"]}, _state) do
+    roomPid = RoomStore.getRoom(roomId)
 
     if roomPid != nil do
       if GenServer.call(roomPid, {:canJoin}) do
@@ -22,18 +24,18 @@ defmodule Mweb.Ruta do
   end
 
   # Endpoint para crear nuevas rooms
-  def call(conn = %{method: "POST", path_info: ["newRoom"]}, [roomStore]) do
+  def call(conn = %{method: "POST", path_info: ["newRoom"]}, _state) do
     roomId = Enum.random(0.. 2**20)
-    {:ok, roomPid} = GenServer.start(Mweb.RoomManager.Room, [roomId, roomStore])
+    {:ok, roomPid} = GenServer.start(Mweb.RoomManager.Room, roomId)
 
-    GenServer.cast(roomStore, {:addRoom, roomId, roomPid})
+    RoomStore.addRoom(roomId, roomPid)
 
     send_whit_cors(conn, 201, Integer.to_string(roomId))
   end
 
   # Endpoint para obtener todas las rooms actuales
-  def call(conn = %{method: "GET", path_info: ["rooms"]}, [roomStore]) do
-    roomsMap = GenServer.call(roomStore, {:getRooms})
+  def call(conn = %{method: "GET", path_info: ["rooms"]},  _state) do
+    roomsMap = RoomStore.getRooms()
     rooms = Map.keys(roomsMap)
 
     {:ok, json} = Jason.encode(rooms)
@@ -41,8 +43,8 @@ defmodule Mweb.Ruta do
     send_whit_cors(conn, 200, json)
   end
 
-  def call(conn = %{method: "GET", path_info: [roomId]}, [roomStore]) do
-    roomPid = GenServer.call(roomStore, {:getRoom, roomId})
+  def call(conn = %{method: "GET", path_info: [roomId]},  _state) do
+    roomPid = RoomStore.getRoom(roomId)
 
     jugadores = GenServer.call(roomPid, {:getCharacters})
     {:ok, json} = Jason.encode(jugadores)
@@ -53,7 +55,7 @@ defmodule Mweb.Ruta do
     send_whit_cors(conn, 404, "Not found")
   end
 
-  def send_whit_cors(conn, status, body) when is_number(status) do
+  def send_whit_cors(conn, status, body) do
     # Agrego cabezeras al body para que el navegador no me bloquee las respuestas de este servidor
     conn
     |> put_resp_header("access-control-allow-origin", "*")

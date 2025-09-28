@@ -3,16 +3,18 @@ defmodule MWeb.Application do
 
   use Application
 
+  alias Mweb.RoomManager.RoomStore
+
   @impl true
   def start(_type, _args) do
 
-    {:ok, pid} = GenServer.start(Mweb.RoomManager.RoomStore, "")
+    GenServer.start_link(RoomStore, "", name: RoomStore)
 
     dispatch = [
       {:_,
        [
-         {"/ws/[...]", Mweb.WSroom, [pid]},
-         {:_, Plug.Cowboy.Handler, {Mweb.Ruta, [pid]}}
+         {"/ws/[...]", Mweb.WSroom, []},
+         {:_, Plug.Cowboy.Handler, {Mweb.Ruta, []}}
        ]}
     ]
 
@@ -20,7 +22,7 @@ defmodule MWeb.Application do
       {Plug.Cowboy,
        scheme: :http,
        plug: Mweb.Ruta,
-       options: [port: 4000, dispatch: dispatch]}
+       options: [port: 4000, dispatch: dispatch]},
     ]
 
     opts = [strategy: :one_for_one, name: Mweb.Supervisor]

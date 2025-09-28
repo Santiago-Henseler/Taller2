@@ -4,6 +4,14 @@ defmodule Mweb.RoomManager.RoomStore do
   """
   use GenServer
 
+  def start_link([]), do: GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+
+  # Casteos para llamar mas lindo al GenServer
+  def addRoom(roomId, roomPid), do: GenServer.cast(__MODULE__, {:addRoom, roomId, roomPid})
+  def removeRoom(roomId), do: GenServer.cast(__MODULE__, {:removeRoom, roomId})
+  def getRooms(), do: GenServer.call(__MODULE__, {:getRooms})
+  def getRoom(roomId), do: GenServer.call(__MODULE__, {:getRoom, roomId})
+
   def init(_params) do
     rooms = %{}
     {:ok, rooms}
@@ -43,6 +51,5 @@ defmodule Mweb.RoomManager.RoomStore do
   def handle_call(request, _pid, rooms) do
     {:reply, request, rooms}
   end
-
 
 end

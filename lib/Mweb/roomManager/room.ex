@@ -1,18 +1,13 @@
 defmodule Mweb.RoomManager.Room do
   @moduledoc """
-    Modulo encargado en manejar las rooms
+    Modulo encargado de manejar una room
   """
   use GenServer
 
-  def init([roomId, roomStore]) do
-    {:ok, %{
-            roomId: roomId,
-            usuarios: [], # Guardo todas las conexiones para un broadcast (si es necesario)
-            aldeanos: [],
-            medicos:  [],
-            mafiosos: [],
-            roomStorePid: roomStore
-            }}
+  alias Mweb.RoomManager.RoomStore
+
+  def init(roomId) do
+    {:ok, %{roomId: roomId, players: [] }}
   end
 
   def handle_info(_msg, state) do
@@ -21,26 +16,27 @@ defmodule Mweb.RoomManager.Room do
 
   def handle_cast({:addPlayer, pid, userId}, state) do
 
-    for user <- state.usuarios do
-      send(user.pid, state.usuarios)
+    for user <- state.players do
+      send(user.pid, state.players)
     end
+
     id = %{userName: userId, pid: pid}
-    state = %{state | usuarios: state.usuarios ++ [id]}
+    state = %{state | players: state.players ++ [id]}
     {:noreply, state}
   end
 
-  def handle_cast({:removePlayer, pid, userId}, state) do
+  def handle_cast({:removePlayer, pid, userId},state) do
     id = %{userName: userId, pid: pid}
-    state = %{state | usuarios: state.usuarios -- [id]}
+    state = %{state | players: state.players -- [id]}
 
-    case length(state.usuarios) do
-      0 ->  GenServer.cast(state.roomStorePid, {:removeRoom, state.roomId})
+    case length(state.players) do
+      0 ->  RoomStore.removeRoom(state.roomId)
       _ -> :ok
     end
     {:noreply, state}
   end
 
-  def handle_call({:getCharacters}, _pid, state) do
+  def handle_call({:getPlayers}, _pid, state) do
     {:reply, state.usuarios, state}
   end
 
