@@ -19,9 +19,6 @@ defmodule Mweb.RoomManager.Room do
     id = %{userName: userId, pid: pid}
     state = %{state | players: state.players ++ [id]}
 
-    IO.puts "se unio"
-    IO.inspect userId
-
     if length(state.players) == 10 do
       {:ok, pid} = GenServer.start_link(Mafia, state.roomId)
       GenServer.cast(pid, {:start, state.players})
@@ -30,15 +27,19 @@ defmodule Mweb.RoomManager.Room do
     {:noreply, state}
   end
 
-  def handle_cast({:removePlayer, pid, userId},state) do
-    id = %{userName: userId, pid: pid}
-    state = %{state | players: state.players -- [id]}
+  def handle_cast({:removePlayer, userId},state) do
 
-    case length(state.players) do
-      0 ->  RoomStore.removeRoom(state.roomId)
+    new_players = state.players |> Enum.reject(fn player -> player.userName == userId end)
+
+    new_state = %{state | players: new_players}
+
+    case length(new_state.players) do
+      0 -> RoomStore.removeRoom(new_state.roomId)
       _ -> :ok
     end
-    {:noreply, state}
+
+    {:noreply, new_state}
+
   end
 
   def handle_call({:getPlayers}, _pid, state) do

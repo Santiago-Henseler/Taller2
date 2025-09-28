@@ -10,7 +10,6 @@ defmodule  Mweb.WSroom do
   def init(req = %{pid: ip, path_info: [roomId, userId]}, state) do
     roomPid = RoomStore.getRoom(roomId)
     GenServer.cast(roomPid, {:addPlayer, ip, userId})
-
     {:cowboy_websocket, req, state}
   end
 
@@ -41,7 +40,7 @@ defmodule  Mweb.WSroom do
 
     # PROBLEMA no puedo obtener el PID para luego borrarlo del room
     roomPid = RoomStore.getRoom(roomId)
-    GenServer.cast(roomPid, {:removePlayer, req.peer, userId})
+    GenServer.cast(roomPid, {:removePlayer, userId})
 
     :ok
   end
