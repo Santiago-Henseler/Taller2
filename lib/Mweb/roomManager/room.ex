@@ -8,8 +8,8 @@ defmodule Mweb.RoomManager.Room do
   alias Lmafia.Mafia
 
   def init(roomId) do
-    {:ok, pid} = GenServer.start_link(Mafia, roomId)
-    {:ok, %{roomId: roomId, players: [], gameController: pid}}
+    {:ok, pid} = GenServer.start_link(Mafia, [])
+    {:ok, %{roomId: roomId, players: [], gameController: pid, start: false}}
   end
 
   def handle_info(_msg, state) do
@@ -22,18 +22,20 @@ defmodule Mweb.RoomManager.Room do
 
     sendPlayers(state)
 
-    if length(state.players) == 10 do
-      GenServer.cast(state.gameController, {:start, state.players})
-    end
+    state =
+      if length(state.players) == 10 and not state.start do
+        GenServer.cast(state.gameController, {:start, state.players})
+        %{state | start: true}
+      else
+        state
+      end
 
     {:noreply, state}
   end
 
   def handle_cast({:removePlayer, userId},state) do
 
-    new_players = state.players |> Enum.reject(fn player -> player.userName == userId end)
-
-    new_state = %{state | players: new_players}
+    new_state = %{state | players: Enum.reject(state.players, fn player -> player.userName == userId end)}
 
     sendPlayers(new_state)
 

@@ -11,13 +11,12 @@ defmodule Lmafia.Mafia do
     def debate, do: :debate
   end
 
-  def init(roomId) do
+  def init(_param) do
     {:ok,  %{
-      roomId: roomId,
       aldeanos:  [], # 4 aldeanos
       medicos:   [], # 2 medicos
       mafiosos:  [], # 2 mafiosos
-      policias:  [],  # 2 policias
+      policias:  [], # 2 policias
       state: State.init()
     }}
   end
@@ -25,31 +24,32 @@ defmodule Lmafia.Mafia do
   def handle_cast({:start, players}, gameInfo) do
     gameInfo =
       if gameInfo.state == :init do
-        gameInfo
+        new = gameInfo
         |> setCharacters(players)
         |> sendCharacterToPlayer()
+        # A los 20 segundos inicia la partida
+        Process.send_after(self(), :nextMove, 20000)
+        new
       else
         gameInfo
       end
     {:noreply, %{gameInfo | state: State.charSet()}}
   end
 
-  def handle_call({:move, move},_pid, gameInfo) do
-
-    {:noreply, %{gameInfo | state: State.charSet()}}
-  end
-
-  def handle_info(:send, gameInfo) do
-
-    gameInfo = if gameInfo.state in [:charSet, :debate] do
-      Enum.each(gameInfo.mafiosos, fn x ->
-        if x.alive == true do
-          {:ok, json} = Jason.encode(%{type: "action", action: "selectVictim"})
-          send(x.pid, {:msg, json})
-        end
-      end)
-      %{gameInfo | state: State.mafiaKill()}
-    end
+  def handle_info(:nextMove, gameInfo) do
+    gameInfo =
+      if gameInfo.state in [:charSet, :debate] do
+        victims = gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
+        Enum.each(gameInfo.mafiosos, fn x ->
+          if x.alive == true do
+            {:ok, json} = Jason.encode(%{type: "action", action: "selectVictim", victims: Enum.map(victims, fn p -> p.userName end)})
+            send(x.pid, {:msg, json})
+          end
+        end)
+        %{gameInfo | state: State.mafiaKill()}
+      else
+        gameInfo
+      end
 
     {:noreply, gameInfo}
   end
@@ -58,12 +58,12 @@ defmodule Lmafia.Mafia do
 
     players = Enum.shuffle(players)
 
-    {aldeanos, players}  = Enum.split(players, 4)
-    {medicos, players}   = Enum.split(players, 2)
-    {mafiosos, players}  = Enum.split(players, 2)
-    {policias, _players}  = Enum.split(players, 2)
+    {aldeanos, players}   = Enum.split(players, 1)
+    #{medicos, players}    = Enum.split(players, 2)
+    {mafiosos, players}   = Enum.split(players, 9)
+    #{policias, _players}  = Enum.split(players, 2)
 
-    %{gameInfo | aldeanos: aldeanos,medicos:  medicos, mafiosos: mafiosos, policias:  policias}
+    %{gameInfo | aldeanos: aldeanos, mafiosos: mafiosos}#  ,medicos:  medicos, policias:  policias
   end
 
   defp sendCharacterToPlayer(characters) do
@@ -87,7 +87,4 @@ defmodule Lmafia.Mafia do
 
     characters
   end
-
-
-
 end

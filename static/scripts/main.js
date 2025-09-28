@@ -1,4 +1,5 @@
 let roomId = null;
+let socket = null;
 let playerName = null;
 
 function initSession(){
@@ -16,7 +17,7 @@ function connectWebSocket(){
 
     document.body.innerHTML += '<div id="players"></div>'
 
-    let socket = new WebSocket("ws://localhost:4000/ws/"+roomId+"/"+playerName)
+    socket = new WebSocket("ws://localhost:4000/ws/"+roomId+"/"+playerName)
 
     socket.onopen = () => {
         getCharacters();
@@ -36,7 +37,10 @@ function connectWebSocket(){
                 break;
             case "characterSet": 
                 setCharacter(data.character);
+                startGame();
                 break;
+            case "action":
+                doAction(data);
             case "pong": break;
         }
     }
