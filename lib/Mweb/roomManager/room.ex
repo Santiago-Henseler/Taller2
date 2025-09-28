@@ -5,6 +5,7 @@ defmodule Mweb.RoomManager.Room do
   use GenServer
 
   alias Mweb.RoomManager.RoomStore
+  alias Lmafia.Mafia
 
   def init(roomId) do
     {:ok, %{roomId: roomId, players: [] }}
@@ -15,13 +16,17 @@ defmodule Mweb.RoomManager.Room do
   end
 
   def handle_cast({:addPlayer, pid, userId}, state) do
-
-    for user <- state.players do
-      send(user.pid, state.players)
-    end
-
     id = %{userName: userId, pid: pid}
     state = %{state | players: state.players ++ [id]}
+
+    IO.puts "se unio"
+    IO.inspect userId
+
+    if length(state.players) == 10 do
+      {:ok, pid} = GenServer.start_link(Mafia, state.roomId)
+      GenServer.cast(pid, {:start, state.players})
+    end
+
     {:noreply, state}
   end
 
@@ -41,7 +46,7 @@ defmodule Mweb.RoomManager.Room do
   end
 
   def handle_call({:canJoin}, _pid, state) do
-    case length(state.usuarios) do
+    case length(state.players) do
       10 ->  {:reply, false, state};
       _  ->  {:reply, true,  state}
     end

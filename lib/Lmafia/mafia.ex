@@ -18,7 +18,7 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_cast({:start, players}, gameInfo) do
-
+    IO.puts "aca"
     gameInfo =
       if gameInfo.state == :init do
         gameInfo
@@ -28,10 +28,10 @@ defmodule Lmafia.Mafia do
         gameInfo
       end
 
-    gameInfo
+    {:noreply, gameInfo}
   end
 
-  defp setCharacters(players, gameInfo) do
+  defp setCharacters(gameInfo, players) do
 
     players = Enum.shuffle(players)
 
