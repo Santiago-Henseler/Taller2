@@ -18,20 +18,15 @@ defmodule  Mweb.WSroom do
   end
 
   # Recibo un mensaje del usuario
-  def websocket_handle({:text, msg}, status) do
+  def websocket_handle({:text, msg}, state) do
     case Jason.decode(msg) do
-      {:ok, %{"type" => "ping"}} ->
-        # Para mantener la conexion abierta
-        {:reply, {:text, Jason.encode!(%{type: "pong"})}, status}
-      {:ok, %{"type" => "move"}} ->
-
-
-        {:reply, {:text, "Echo: "}, status}
-      {:ok, data} ->
-        IO.inspect data
-        {:reply, {:text, "Echo: " <> data}, status}
+      {:ok, %{"type" => "ping"}} -> # Para mantener la conexion abierta
+        {:reply, {:text, Jason.encode!(%{type: "pong"})}, state}
+      {:ok, %{"type" => "victimPreSelected", "roomId" => roomId, "victim" => victim}} -> # Momento que deciden la victima
+        roomPid = RoomStore.getRoom(roomId)
+        GenServer.cast(roomPid, {:victimPreSelected, victim})
       _ ->
-        {:ok, status}
+        {:ok, state}
     end
   end
 

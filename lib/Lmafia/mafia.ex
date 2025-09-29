@@ -5,6 +5,7 @@ defmodule Lmafia.Mafia do
   defmodule State do
     def init, do: :init
     def charSet, do: :charSet
+    def mafiaSelectKill, do: :mafiaSelectKill
     def mafiaKill, do: :mafiaKill
     def med1, do: :med1
     def med2, do: :med2
@@ -27,13 +28,24 @@ defmodule Lmafia.Mafia do
         new = gameInfo
         |> setCharacters(players)
         |> sendCharacterToPlayer()
-        # A los 20 segundos inicia la partida
-        Process.send_after(self(), :nextMove, 20000)
+        Process.send_after(self(), :nextMove, 20000) # A los 20 segundos inicia la partida
         new
       else
         gameInfo
       end
     {:noreply, %{gameInfo | state: State.charSet()}}
+  end
+
+  def handle_cast({:victimPreSelected, victimId}, gameInfo) do
+
+    Enum.each(gameInfo.mafiosos, fn x ->
+      if x.alive == true do
+        {:ok, json} = Jason.encode(%{type: "preSelectedVictim", victim: victimId})
+        send(x.pid, {:msg, json})
+      end
+    end)
+
+    {:noreply, gameInfo}
   end
 
   def handle_info(:nextMove, gameInfo) do
@@ -58,9 +70,9 @@ defmodule Lmafia.Mafia do
 
     players = Enum.shuffle(players)
 
-    {aldeanos, players}   = Enum.split(players, 1)
+    {aldeanos, players}   = Enum.split(players, 2)
     #{medicos, players}    = Enum.split(players, 2)
-    {mafiosos, players}   = Enum.split(players, 9)
+    {mafiosos, players}   = Enum.split(players, 8)
     #{policias, _players}  = Enum.split(players, 2)
 
     %{gameInfo | aldeanos: aldeanos, mafiosos: mafiosos}#  ,medicos:  medicos, policias:  policias

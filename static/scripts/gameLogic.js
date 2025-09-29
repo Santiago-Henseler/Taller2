@@ -7,7 +7,7 @@ function setCharacter(characterType){
 }
 
 function startGame(){
-    document.body.innerHTML += '<h3 id="startTimer"></h3>'
+    document.body.innerHTML += '<center><h3 id="startTimer"></h3></center>'
 
     timer(20, (time)=>{
         let timer = document.getElementById("startTimer")
@@ -30,7 +30,37 @@ function doAction(action){
 }
 
 function selectVictim(victims){
-    alert(victims)
+
+    document.body.innerHTML += '<div id="victimSeccion"><center><h2>Selecciona tu victima</h2><h3 id="victimTimer"></h3></center></div>'
+    let victimSeccion = document.getElementById("victimSeccion")
+    
+    timer(100, (time)=>{
+        let timer = document.getElementById("victimTimer")
+        timer.innerText = "La seleccion de victima termina en " +time;
+
+        if(time == 1){
+            timer.style.display = "none"
+        }
+    })
+
+    for(let victim of victims){
+        victimSeccion.insertAdjacentHTML("beforeend", `
+        <label>
+            <input type="radio" name="victim" value="${victim}"> ${victim}
+        </label>
+        <label id="${victim}Count"></label>
+        <br>
+    `);
+    }
+
+    const radios = document.querySelectorAll('input[name="victim"]');
+    const resultado = document.getElementById("resultado");
+
+    radios.forEach(radio => {
+      radio.addEventListener("change", () => {
+        socket.send(JSON.stringify({roomId: roomId, type: "victimPreSelected", victim: radio.value}));
+      });
+    })
 }
 
 function timer(time, fn){
