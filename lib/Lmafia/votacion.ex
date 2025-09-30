@@ -37,10 +37,10 @@ defmodule Lmafia.Votacion do
   end
 
   def handle_call(:getWin, _pid, voteInfo) do
-    {:reply,  getMax(voteInfo), %{}}
+    {:reply,  getMax(voteInfo), voteInfo}
   end
 
-  defp getMax(voteInfo) do
+  defp getMax(voteInfo) when map_size(voteInfo) >= 2 do
     top2 =
       voteInfo |> Enum.sort_by(fn {_k, v} -> v end, :desc) |> Enum.take(2)
 
@@ -48,11 +48,22 @@ defmodule Lmafia.Votacion do
     {secondK, secondV} = Enum.at(top2, 1)
 
     if firstV == secondV do
+      # Si hay empate elijo al azar entre los 2 primeros
       elements = [firstK, secondK]
       pos = Enum.random(0..1)
       Enum.at(elements, pos)
     else
       firstK
+    end
+  end
+
+  defp getMax(voteInfo) do
+
+    if  map_size(voteInfo) > 0 do
+      {firstK, _firstV} = Enum.at(voteInfo, 0)
+      firstK
+    else
+      nil
     end
 
   end

@@ -31,15 +31,18 @@ function doAction(action){
 
 function selectVictim(victims){
 
+    let victim = null;
+
     document.body.innerHTML += '<div id="victimSeccion"><center><h2>Selecciona tu victima</h2><h3 id="victimTimer"></h3></center></div>'
     let victimSeccion = document.getElementById("victimSeccion")
     
-    timer(100, (time)=>{
+    timer(15, (time)=>{ // Debe ser 100 segundos, deje 15 para test
         let timer = document.getElementById("victimTimer")
         timer.innerText = "La seleccion de victima termina en " +time;
 
         if(time == 1){
             timer.style.display = "none"
+            socket.send(JSON.stringify({roomId: roomId, type: "victimSelect", victim: victim}));
         }
     })
 
@@ -58,7 +61,7 @@ function selectVictim(victims){
 
     radios.forEach(radio => {
       radio.addEventListener("change", () => {
-        socket.send(JSON.stringify({roomId: roomId, type: "victimPreSelected", victim: radio.value}));
+        victim = radio.value
       });
     })
 }
