@@ -12,7 +12,8 @@ defmodule Lmafia.Mafia do
       medicos:   [], # 2 medicos
       mafiosos:  [], # 2 mafiosos
       policias:  [], # 2 policias
-      votacion:  pid
+      votacion:  pid,
+      victimSelect: nil
     }}
   end
 
@@ -30,24 +31,9 @@ defmodule Lmafia.Mafia do
     {:noreply, gameInfo}
   end
 
-  def handle_cast(:kill, gameInfo) do
-
-    killed = GenServer.call(gameInfo.votacion, :getWin)
-    GenServer.cast(gameInfo.votacion, :restart)
-
-    # marcar como muerto al killed
-    kill(killed, gameInfo)
-
-    Process.send_after(self(), :medics, 1000) # Al segundo levanto a los medicos
-
-    {:noreply, gameInfo}
-  end
-
-  def handle_cast({:revive, userName}, gameInfo) do
-
-    revive(userName, gameInfo)
-
-    {:noreply, gameInfo}
+  def handle_cast({:saveSelect, saveId}, gameInfo) do
+    # TODO: almacenar los curados
+    {:noreply, revive(saveId, gameInfo)}
   end
 
   def handle_call({:isMafia, userName}, _pid, gameInfo) do
@@ -59,13 +45,53 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_info(:selectVictim, gameInfo) do
-    victims = gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
+    victims = gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias # selecionar victimas vivas
     Enum.each(gameInfo.mafiosos, fn x ->
       if x.alive == true do
         {:ok, json} = Jason.encode(%{type: "action", action: "selectVictim", victims: Enum.map(victims, fn p -> p.userName end)})
         send(x.pid, {:msg, json})
       end
     end)
+    Process.send_after(self(), :kill, 13000)
+    {:noreply, gameInfo}
+  end
+
+  def handle_info(:kill, gameInfo) do
+
+    killed = GenServer.call(gameInfo.votacion, :getWin)
+    GenServer.cast(gameInfo.votacion, :restart)
+
+    gameInfo = kill(killed, gameInfo)
+
+    Process.send_after(self(), :medics, 1000) # Al segundo levanto a los medicos
+
+    {:noreply, %{gameInfo | victimSelect: killed}}
+  end
+
+  def handle_info(:medics, gameInfo) do
+    players = gameInfo.mafiosos ++ gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
+    Enum.each(gameInfo.medicos, fn x ->
+      if x.alive == true do
+        {:ok, json} = Jason.encode(%{type: "action", action: "savePlayer", players: Enum.map(players, fn p -> p.userName end)})
+        send(x.pid, {:msg, json})
+      end
+    end)
+
+    Process.send_after(self(), :cops, 13000)
+
+    {:noreply, gameInfo}
+  end
+
+  def handle_info(:cops, gameInfo) do
+    players = gameInfo.mafiosos ++ gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
+    Enum.each(gameInfo.policias, fn x ->
+      if x.alive == true do
+        {:ok, json} = Jason.encode(%{type: "action", action: "selectGuilty", players: Enum.map(players, fn p -> p.userName end)})
+        send(x.pid, {:msg, json})
+      end
+    end)
+
+    Process.send_after(self(), :discussion, 13000)
     {:noreply, gameInfo}
   end
 
@@ -77,21 +103,40 @@ defmodule Lmafia.Mafia do
         send(x.pid, {:msg, json})
       end
     end)
+
+    Process.send_after(self(), :endDiscussion, 50000)
+    {:noreply, gameInfo}
+  end
+
+  def handle_info(:endDiscussion, gameInfo) do
+    # TODO: determinar como sigue el juego
     {:noreply, gameInfo}
   end
 
   defp kill(userName, gameInfo) do
-    Map.update(gameInfo.mafiosos, userName, nil, fn u -> %{u | alive: false} end)
-    Map.update(gameInfo.aldeanos, userName, nil, fn u -> %{u | alive: false} end)
-    Map.update(gameInfo.policias, userName, nil, fn u -> %{u | alive: false} end)
-    Map.update(gameInfo.medicos,  userName, nil, fn u -> %{u | alive: false} end)
+    changeAliveState(userName, false, gameInfo)
   end
 
   defp revive(userName, gameInfo) do
-    Map.update(gameInfo.mafiosos, userName, nil, fn  u -> if not u.alive do %{u | alive: true} end end)
-    Map.update(gameInfo.aldeanos, userName, nil, fn  u -> if not u.alive do %{u | alive: true} end end)
-    Map.update(gameInfo.policias, userName, nil, fn  u -> if not u.alive do %{u | alive: true} end end)
-    Map.update(gameInfo.medicos,  userName, nil, fn  u -> if not u.alive do %{u | alive: true} end end)
+    changeAliveState(userName, true, gameInfo)
+  end
+
+  defp changeAliveState(userName, alive, gameInfo) do
+    mafiosos = changeAlive(gameInfo.mafiosos, userName, alive)
+    aldeanos = changeAlive(gameInfo.aldeanos, userName, alive)
+    policias = changeAlive(gameInfo.policias, userName, alive)
+    medicos =  changeAlive(gameInfo.medicos, userName, alive)
+
+    %{gameInfo | aldeanos: aldeanos, mafiosos: mafiosos, policias: policias, medicos: medicos}
+  end
+
+  defp changeAlive(players, userName, alive) do
+    Enum.map(players, fn x ->
+      if x == userName do
+        %{x | alive: alive}
+      else
+        x
+      end end)
   end
 
   defp setCharacters(gameInfo, players) do

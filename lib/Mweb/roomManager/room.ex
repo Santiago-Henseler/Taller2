@@ -53,7 +53,13 @@ defmodule Mweb.RoomManager.Room do
     GenServer.cast(state.gameController, {:victimSelect, victimId})
 
     {:noreply, state}
+  end
 
+  def handle_cast({:saveSelect, saveId},state) do
+
+    GenServer.cast(state.gameController, {:saveSelect, saveId})
+
+    {:noreply, state}
   end
 
   def handle_call({:getPlayers}, _pid, state) do

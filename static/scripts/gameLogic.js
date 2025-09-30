@@ -25,7 +25,21 @@ function doAction(action){
         case "selectVictim":
             selectVictim(action.victims)
             break;
+        case "savePlayer":
+            savePlayer(action.players)
+            break;
+        case "selectGuilty":
+            selectGuilty(action.players)
+            break;
+        default: break;
     }
+}
+
+function selectGuilty(players){
+    
+}
+
+function savePlayer(players){
 
 }
 
@@ -36,7 +50,7 @@ function selectVictim(victims){
     document.body.innerHTML += '<div id="victimSeccion"><center><h2>Selecciona tu victima</h2><h3 id="victimTimer"></h3></center></div>'
     let victimSeccion = document.getElementById("victimSeccion")
     
-    timer(15, (time)=>{ // Debe ser 100 segundos, deje 15 para test
+    timer(100, (time)=>{
         let timer = document.getElementById("victimTimer")
         timer.innerText = "La seleccion de victima termina en " +time;
 

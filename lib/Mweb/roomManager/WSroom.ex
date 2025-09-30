@@ -26,6 +26,10 @@ defmodule  Mweb.WSroom do
         roomPid = RoomStore.getRoom(roomId)
         GenServer.cast(roomPid, {:victimSelect, victim})
         {:ok, state}
+      {:ok, %{"type" => "savedSelect", "roomId" => roomId, "player" => player}} -> # Momento que deciden la victima
+        roomPid = RoomStore.getRoom(roomId)
+        GenServer.cast(roomPid, {:savedSelect, player})
+        {:ok, state}
       _ ->
         {:ok, state}
     end
