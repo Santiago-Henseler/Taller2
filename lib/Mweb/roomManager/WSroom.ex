@@ -8,6 +8,10 @@ defmodule  Mweb.WSroom do
 
   # Cuando un nuevo usuario se conecta a la room lo agrego
   def init(req = %{pid: ip, path_info: [roomId, userId]}, state) do
+    IO.puts "Init nuevo user" 
+    IO.puts roomId 
+    IO.puts userId
+
     roomPid = RoomStore.getRoom(roomId)
     GenServer.cast(roomPid, {:addPlayer, ip, userId})
     {:cowboy_websocket, req, state}

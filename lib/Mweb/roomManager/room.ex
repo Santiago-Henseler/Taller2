@@ -23,7 +23,7 @@ defmodule Mweb.RoomManager.Room do
     sendPlayers(state)
 
     state =
-      if length(state.players) == 10 and not state.start do
+      if length(state.players) == 4 and not state.start do
         GenServer.cast(state.gameController, {:start, state.players})
         %{state | start: true}
       else

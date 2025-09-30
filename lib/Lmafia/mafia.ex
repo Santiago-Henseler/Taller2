@@ -71,11 +71,11 @@ defmodule Lmafia.Mafia do
     players = Enum.shuffle(players)
 
     {aldeanos, players}   = Enum.split(players, 2)
-    #{medicos, players}    = Enum.split(players, 2)
-    {mafiosos, players}   = Enum.split(players, 8)
-    #{policias, _players}  = Enum.split(players, 2)
+    {medicos, players}    = Enum.split(players, 2)
+    {mafiosos, players}   = Enum.split(players, 2)
+    {policias, _players}  = Enum.split(players, 2)
 
-    %{gameInfo | aldeanos: aldeanos, mafiosos: mafiosos}#  ,medicos:  medicos, policias:  policias
+    %{gameInfo | aldeanos: aldeanos, mafiosos: mafiosos,medicos:  medicos, policias:  policias}
   end
 
   defp sendCharacterToPlayer(characters) do
