@@ -1,79 +1,152 @@
 defmodule Lmafia.Mafia do
+  alias Lmafia.Votacion
 
   use GenServer
 
-  defmodule State do
-    def init, do: :init
-    def charSet, do: :charSet
-    def mafiaSelectKill, do: :mafiaSelectKill
-    def mafiaKill, do: :mafiaKill
-    def med1, do: :med1
-    def med2, do: :med2
-    def debate, do: :debate
-  end
-
   def init(_param) do
+
+    {:ok, pid} = GenServer.start_link(Votacion, [])
+
     {:ok,  %{
       aldeanos:  [], # 4 aldeanos
       medicos:   [], # 2 medicos
       mafiosos:  [], # 2 mafiosos
       policias:  [], # 2 policias
-      state: State.init()
+      votacion:  pid,
+      victimSelect: nil
     }}
   end
 
   def handle_cast({:start, players}, gameInfo) do
-    gameInfo =
-      if gameInfo.state == :init do
-        new = gameInfo
-        |> setCharacters(players)
-        |> sendCharacterToPlayer()
-        Process.send_after(self(), :nextMove, 20000) # A los 20 segundos inicia la partida
-        new
-      else
-        gameInfo
-      end
-    {:noreply, %{gameInfo | state: State.charSet()}}
+    gameInfo = gameInfo
+      |> setCharacters(players)
+      |> sendCharacterToPlayer()
+
+    Process.send_after(self(), :selectVictim, 20000) # A los 20 segundos inicia la partida
+    {:noreply, gameInfo}
   end
 
-  def handle_cast({:victimPreSelected, victimId}, gameInfo) do
+  def handle_cast({:victimSelect, victimId}, gameInfo) do
+    GenServer.cast(gameInfo.votacion, {:addVote, victimId})
+    {:noreply, gameInfo}
+  end
 
+  def handle_cast({:saveSelect, saveId}, gameInfo) do
+    # TODO: almacenar los curados
+    {:noreply, revive(saveId, gameInfo)}
+  end
+
+  def handle_call({:isMafia, userName}, _pid, gameInfo) do
+    if Map.get(gameInfo.mafiosos, userName) == nil do
+      {:reply, false, gameInfo}
+    else
+      {:reply, true, gameInfo}
+    end
+  end
+
+  def handle_info(:selectVictim, gameInfo) do
+    victims = gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias # selecionar victimas vivas
     Enum.each(gameInfo.mafiosos, fn x ->
       if x.alive == true do
-        {:ok, json} = Jason.encode(%{type: "preSelectedVictim", victim: victimId})
+        {:ok, json} = Jason.encode(%{type: "action", action: "selectVictim", victims: Enum.map(victims, fn p -> p.userName end)})
+        send(x.pid, {:msg, json})
+      end
+    end)
+    Process.send_after(self(), :kill, 13000)
+    {:noreply, gameInfo}
+  end
+
+  def handle_info(:kill, gameInfo) do
+
+    killed = GenServer.call(gameInfo.votacion, :getWin)
+    GenServer.cast(gameInfo.votacion, :restart)
+
+    gameInfo = kill(killed, gameInfo)
+
+    Process.send_after(self(), :medics, 1000) # Al segundo levanto a los medicos
+
+    {:noreply, %{gameInfo | victimSelect: killed}}
+  end
+
+  def handle_info(:medics, gameInfo) do
+    players = gameInfo.mafiosos ++ gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
+    Enum.each(gameInfo.medicos, fn x ->
+      if x.alive == true do
+        {:ok, json} = Jason.encode(%{type: "action", action: "savePlayer", players: Enum.map(players, fn p -> p.userName end)})
         send(x.pid, {:msg, json})
       end
     end)
 
+    Process.send_after(self(), :cops, 13000)
+
     {:noreply, gameInfo}
   end
 
-  def handle_info(:nextMove, gameInfo) do
-    gameInfo =
-      if gameInfo.state in [:charSet, :debate] do
-        victims = gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
-        Enum.each(gameInfo.mafiosos, fn x ->
-          if x.alive == true do
-            {:ok, json} = Jason.encode(%{type: "action", action: "selectVictim", victims: Enum.map(victims, fn p -> p.userName end)})
-            send(x.pid, {:msg, json})
-          end
-        end)
-        %{gameInfo | state: State.mafiaKill()}
-      else
-        gameInfo
+  def handle_info(:cops, gameInfo) do
+    players = gameInfo.mafiosos ++ gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
+    Enum.each(gameInfo.policias, fn x ->
+      if x.alive == true do
+        {:ok, json} = Jason.encode(%{type: "action", action: "selectGuilty", players: Enum.map(players, fn p -> p.userName end)})
+        send(x.pid, {:msg, json})
       end
+    end)
 
+    Process.send_after(self(), :discussion, 13000)
     {:noreply, gameInfo}
+  end
+
+  def handle_info(:discussion, gameInfo) do
+    users = gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias ++ gameInfo.mafiosos
+    Enum.each(users, fn x ->
+      if x.alive == true do
+        {:ok, json} = Jason.encode(%{type: "action", action: "discussion", victims: Enum.map(users, fn p -> p.userName end)})
+        send(x.pid, {:msg, json})
+      end
+    end)
+
+    Process.send_after(self(), :endDiscussion, 50000)
+    {:noreply, gameInfo}
+  end
+
+  def handle_info(:endDiscussion, gameInfo) do
+    # TODO: determinar como sigue el juego
+    {:noreply, gameInfo}
+  end
+
+  defp kill(userName, gameInfo) do
+    changeAliveState(userName, false, gameInfo)
+  end
+
+  defp revive(userName, gameInfo) do
+    changeAliveState(userName, true, gameInfo)
+  end
+
+  defp changeAliveState(userName, alive, gameInfo) do
+    mafiosos = changeAlive(gameInfo.mafiosos, userName, alive)
+    aldeanos = changeAlive(gameInfo.aldeanos, userName, alive)
+    policias = changeAlive(gameInfo.policias, userName, alive)
+    medicos =  changeAlive(gameInfo.medicos, userName, alive)
+
+    %{gameInfo | aldeanos: aldeanos, mafiosos: mafiosos, policias: policias, medicos: medicos}
+  end
+
+  defp changeAlive(players, userName, alive) do
+    Enum.map(players, fn x ->
+      if x == userName do
+        %{x | alive: alive}
+      else
+        x
+      end end)
   end
 
   defp setCharacters(gameInfo, players) do
 
     players = Enum.shuffle(players)
 
-    {aldeanos, players}   = Enum.split(players, 2)
-    {medicos, players}    = Enum.split(players, 2)
-    {mafiosos, players}   = Enum.split(players, 2)
-    {policias, _players}  = Enum.split(players, 2)
+    {aldeanos, rest}   = Enum.split(players, 2)
+    #{medicos, rest}    = Enum.split(rest, 2)
+    {mafiosos, rest}   = Enum.split(rest, 8)
+    #{policias, _rest}  = Enum.split(rest, 2)
 
     %{gameInfo | aldeanos: aldeanos, mafiosos: mafiosos,medicos:  medicos, policias:  policias}
   end

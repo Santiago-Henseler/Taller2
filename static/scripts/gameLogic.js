@@ -25,11 +25,27 @@ function doAction(action){
         case "selectVictim":
             selectVictim(action.victims)
             break;
+        case "savePlayer":
+            savePlayer(action.players)
+            break;
+        case "selectGuilty":
+            selectGuilty(action.players)
+            break;
+        default: break;
     }
+}
+
+function selectGuilty(players){
+    
+}
+
+function savePlayer(players){
 
 }
 
 function selectVictim(victims){
+
+    let victim = null;
 
     document.body.innerHTML += '<div id="victimSeccion"><center><h2>Selecciona tu victima</h2><h3 id="victimTimer"></h3></center></div>'
     let victimSeccion = document.getElementById("victimSeccion")
@@ -40,6 +56,7 @@ function selectVictim(victims){
 
         if(time == 1){
             timer.style.display = "none"
+            socket.send(JSON.stringify({roomId: roomId, type: "victimSelect", victim: victim}));
         }
     })
 
@@ -58,7 +75,7 @@ function selectVictim(victims){
 
     radios.forEach(radio => {
       radio.addEventListener("change", () => {
-        socket.send(JSON.stringify({roomId: roomId, type: "victimPreSelected", victim: radio.value}));
+        victim = radio.value
       });
     })
 }

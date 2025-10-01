@@ -41,6 +41,10 @@ function connectWebSocket(){
                 break;
             case "action":
                 doAction(data);
+                break;
+            case "debug":
+                console.log(data);
+                break;
             case "pong": break;
         }
     }

@@ -26,9 +26,14 @@ defmodule  Mweb.WSroom do
     case Jason.decode(msg) do
       {:ok, %{"type" => "ping"}} -> # Para mantener la conexion abierta
         {:reply, {:text, Jason.encode!(%{type: "pong"})}, state}
-      {:ok, %{"type" => "victimPreSelected", "roomId" => roomId, "victim" => victim}} -> # Momento que deciden la victima
+      {:ok, %{"type" => "victimSelect", "roomId" => roomId, "victim" => victim}} -> # Momento que deciden la victima
         roomPid = RoomStore.getRoom(roomId)
-        GenServer.cast(roomPid, {:victimPreSelected, victim})
+        GenServer.cast(roomPid, {:victimSelect, victim})
+        {:ok, state}
+      {:ok, %{"type" => "savedSelect", "roomId" => roomId, "player" => player}} -> # Momento que deciden la victima
+        roomPid = RoomStore.getRoom(roomId)
+        GenServer.cast(roomPid, {:savedSelect, player})
+        {:ok, state}
       _ ->
         {:ok, state}
     end

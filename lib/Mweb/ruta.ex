@@ -10,7 +10,7 @@ defmodule Mweb.Ruta do
   # Endpoint para chequear si se puede unir a una room
   def call(conn = %{method: "POST", path_info: [roomId, "joinRoom"]}, _state) do
     roomPid = RoomStore.getRoom(roomId)
-
+    # TODO: si la room ya contiene un usuario con ese nombre modificar el nombre
     if roomPid != nil do
       if GenServer.call(roomPid, {:canJoin}) do
         send_whit_cors(conn, 201, roomId)
