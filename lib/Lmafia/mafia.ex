@@ -1,5 +1,6 @@
 defmodule Lmafia.Mafia do
   require Constantes
+  require MaquinaEstados
   alias Lmafia.Votacion
 
   use GenServer
