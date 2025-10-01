@@ -23,7 +23,7 @@ defmodule Lmafia.Mafia do
       |> setCharacters(players)
       |> sendCharacterToPlayer()
 
-    Process.send_after(self(), :selectVictim, Constantes.tIEMPO_INICIO_PARTIDA) # A los 20 segundos inicia la partida
+    Process.send_after(self(), :selectVictim, Constantes.tINICIO_PARTIDA) # A los 20 segundos inicia la partida
     {:noreply, gameInfo}
   end
 
@@ -105,7 +105,7 @@ defmodule Lmafia.Mafia do
       end
     end)
 
-    Process.send_after(self(), :endDiscussion, Constantes.tIEMPO_DEBATE)
+    Process.send_after(self(), :endDiscussion, Constantes.tDEBATE)
     {:noreply, gameInfo}
   end
 
@@ -144,10 +144,10 @@ defmodule Lmafia.Mafia do
 
     players = Enum.shuffle(players)
 
-    {aldeanos, rest}    = Enum.split(players, Constantes.aLDEANOS)
-    #{medicos, rest}    = Enum.split(rest, Constantes.mEDICOS)
-    {mafiosos, _rest}   = Enum.split(rest, Constantes.mAFIOSOS)
-    #{policias, _rest}   = Enum.split(rest, Constantes.pOLICIAS)
+    {aldeanos, rest}    = Enum.split(players, Constantes.nALDEANOS)
+    #{medicos, rest}    = Enum.split(rest, Constantes.nMEDICOS)
+    {mafiosos, _rest}   = Enum.split(rest, Constantes.nMAFIOSOS)
+    #{policias, _rest}   = Enum.split(rest, Constantes.nPOLICIAS)
 
     %{gameInfo | aldeanos: aldeanos, mafiosos: mafiosos} #,medicos:  medicos, policias:  policias}
   end
