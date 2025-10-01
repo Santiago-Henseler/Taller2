@@ -2,6 +2,7 @@ defmodule Mweb.RoomManager.Room do
   @moduledoc """
     Modulo encargado de manejar una room
   """
+  require Constantes
   use GenServer
 
   alias Mweb.RoomManager.RoomStore
@@ -23,7 +24,7 @@ defmodule Mweb.RoomManager.Room do
     sendPlayers(state)
 
     state =
-      if length(state.players) == 4 and not state.start do
+      if length(state.players) == Constantes.jUGADORES and not state.start do
         GenServer.cast(state.gameController, {:start, state.players})
         %{state | start: true}
       else

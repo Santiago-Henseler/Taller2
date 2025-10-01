@@ -1,4 +1,5 @@
 defmodule Lmafia.Mafia do
+  require Constantes
   alias Lmafia.Votacion
 
   use GenServer
@@ -22,7 +23,7 @@ defmodule Lmafia.Mafia do
       |> setCharacters(players)
       |> sendCharacterToPlayer()
 
-    Process.send_after(self(), :selectVictim, 20000) # A los 20 segundos inicia la partida
+    Process.send_after(self(), :selectVictim, Constantes.tIEMPO_INICIO_PARTIDA) # A los 20 segundos inicia la partida
     {:noreply, gameInfo}
   end
 
@@ -104,7 +105,7 @@ defmodule Lmafia.Mafia do
       end
     end)
 
-    Process.send_after(self(), :endDiscussion, 50000)
+    Process.send_after(self(), :endDiscussion, Constantes.tIEMPO_DEBATE)
     {:noreply, gameInfo}
   end
 
@@ -143,12 +144,12 @@ defmodule Lmafia.Mafia do
 
     players = Enum.shuffle(players)
 
-    {aldeanos, rest}   = Enum.split(players, 2)
-    #{medicos, rest}    = Enum.split(rest, 2)
-    {mafiosos, rest}   = Enum.split(rest, 8)
-    #{policias, _rest}  = Enum.split(rest, 2)
+    {aldeanos, rest}    = Enum.split(players, Constantes.aLDEANOS)
+    #{medicos, rest}    = Enum.split(rest, Constantes.mEDICOS)
+    {mafiosos, _rest}   = Enum.split(rest, Constantes.mAFIOSOS)
+    #{policias, _rest}   = Enum.split(rest, Constantes.pOLICIAS)
 
-    %{gameInfo | aldeanos: aldeanos, mafiosos: mafiosos,medicos:  medicos, policias:  policias}
+    %{gameInfo | aldeanos: aldeanos, mafiosos: mafiosos} #,medicos:  medicos, policias:  policias}
   end
 
   defp sendCharacterToPlayer(characters) do
