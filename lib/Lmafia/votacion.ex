@@ -11,7 +11,6 @@ defmodule Lmafia.Votacion do
   end
 
   def handle_cast({:addVote, vote}, voteInfo) do
-    
     len = Map.get(voteInfo, vote)
 
     voteInfo =

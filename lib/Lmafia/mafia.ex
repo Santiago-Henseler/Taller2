@@ -40,11 +40,7 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_call({:isMafia, userName}, _pid, gameInfo) do
-    if Map.get(gameInfo.mafiosos, userName) == nil do
-      {:reply, false, gameInfo}
-    else
-      {:reply, true, gameInfo}
-    end
+    {:reply, Map.get(gameInfo.mafiosos, userName) != nil, gameInfo}
   end
 
   def handle_info(:selectVictim, gameInfo) do
@@ -66,7 +62,7 @@ defmodule Lmafia.Mafia do
 
     gameInfo = kill(killed, gameInfo)
 
-    Process.send_after(self(), :medics, 1000) # Al segundo levanto a los medicos
+    Process.send_after(self(), :medics, Constantes.tTRANSICION) # Al segundo levanto a los medicos
 
     {:noreply, %{gameInfo | victimSelect: killed}}
   end
@@ -107,7 +103,7 @@ defmodule Lmafia.Mafia do
       end
     end)
 
-    Process.send_after(self(), :endDiscussion, Constantes.tDEBATE)
+    Process.send_after(self(), :endDiscussion, Constantes.tDEBATE_FINAL)
     {:noreply, gameInfo}
   end
 
@@ -118,7 +114,7 @@ defmodule Lmafia.Mafia do
     # Si cant mafiosos = 0            -> Gano el pueblo
     # Sino, sigue el juego   
 
-    Process.send_after(self(), :endDiscussion, Constantes.tDEBATE)
+    Process.send_after(self(), :selectVictim, Constantes.tTRANSICION)
     {:noreply, gameInfo}
   end
 

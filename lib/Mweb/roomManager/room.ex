@@ -72,10 +72,7 @@ defmodule Mweb.RoomManager.Room do
       {:reply, false, state}
     end
 
-    case length(state.players) do
-      10 ->  {:reply, false, state}
-      _  ->  {:reply, true,  state}
-    end
+    {:reply, length(state.players) < Constantes.nJUGADORES, state}
   end
 
   def handle_call(request, _pid, state) do
