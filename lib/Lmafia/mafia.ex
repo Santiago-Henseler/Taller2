@@ -13,18 +13,18 @@ defmodule Lmafia.Mafia do
       medicos:   [], # 2 medicos
       mafiosos:  [], # 2 mafiosos
       policias:  [], # 2 policias
+      muertos:   [], 
       votacion:  pid,
-      victimSelect: nil
+      victimSelect: nil,
+      saveSelect: nil,
     }}
   end
 
   def handle_cast({:start, players}, gameInfo) do
-    dbg gameInfo 
     gameInfo = gameInfo
       |> setCharacters(players)
       |> sendCharacterToPlayer()
-    dbg gameInfo 
-
+          
     Process.send_after(self(), :selectVictim, Constantes.tINICIO_PARTIDA) # A los 20 segundos inicia la partida
     {:noreply, gameInfo}
   end
@@ -35,7 +35,7 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_cast({:saveSelect, saveId}, gameInfo) do
-    # TODO: almacenar los curados
+    GenServer.cast(gameInfo.votacion, {:addVote, saveId})
     {:noreply, revive(saveId, gameInfo)}
   end
 
@@ -44,13 +44,10 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_info(:selectVictim, gameInfo) do
-    victims = gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias # selecionar victimas vivas
-    Enum.each(gameInfo.mafiosos, fn x ->
-      if x.alive == true do
-        {:ok, json} = Jason.encode(%{type: "action", action: "selectVictim", victims: Enum.map(victims, fn p -> p.userName end)})
-        send(x.pid, {:msg, json})
-      end
-    end)
+    # selecionar victimas vivas
+    victims = gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias 
+    {:ok, json} = Jason.encode(%{type: "action", action: "selectVictim", victims: Enum.map(victims, fn p -> p.userName end)})
+    multicast(gameInfo.mafiosos, json)
     Process.send_after(self(), :kill, 13000)
     {:noreply, gameInfo}
   end
@@ -69,13 +66,8 @@ defmodule Lmafia.Mafia do
 
   def handle_info(:medics, gameInfo) do
     players = gameInfo.mafiosos ++ gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
-    Enum.each(gameInfo.medicos, fn x ->
-      if x.alive == true do
-        {:ok, json} = Jason.encode(%{type: "action", action: "savePlayer", players: Enum.map(players, fn p -> p.userName end)})
-        send(x.pid, {:msg, json})
-      end
-    end)
-
+    {:ok, json} = Jason.encode(%{type: "action", action: "savePlayer", players: Enum.map(players, fn p -> p.userName end)})
+    multicast(gameInfo.medicos, json)
     Process.send_after(self(), :cops, 13000)
 
     {:noreply, gameInfo}
@@ -83,26 +75,18 @@ defmodule Lmafia.Mafia do
 
   def handle_info(:cops, gameInfo) do
     players = gameInfo.mafiosos ++ gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
-    Enum.each(gameInfo.policias, fn x ->
-      if x.alive == true do
-        {:ok, json} = Jason.encode(%{type: "action", action: "selectGuilty", players: Enum.map(players, fn p -> p.userName end)})
-        send(x.pid, {:msg, json})
-      end
-    end)
-
+    {:ok, json} = Jason.encode(%{type: "action", action: "selectGuilty", players: Enum.map(players, fn p -> p.userName end)})
+    multicast(gameInfo.medicos, json)
+    
     Process.send_after(self(), :discussion, 13000)
     {:noreply, gameInfo}
   end
 
   def handle_info(:discussion, gameInfo) do
     users = gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias ++ gameInfo.mafiosos
-    Enum.each(users, fn x ->
-      if x.alive == true do
-        {:ok, json} = Jason.encode(%{type: "action", action: "discussion", victims: Enum.map(users, fn p -> p.userName end)})
-        send(x.pid, {:msg, json})
-      end
-    end)
-
+    {:ok, json} = Jason.encode(%{type: "action", action: "discussion", victims: Enum.map(users, fn p -> p.userName end)})
+    multicast(users,json)
+    
     Process.send_after(self(), :endDiscussion, Constantes.tDEBATE_FINAL)
     {:noreply, gameInfo}
   end
@@ -157,24 +141,24 @@ defmodule Lmafia.Mafia do
   end
 
   defp sendCharacterToPlayer(characters) do
-
-    Enum.each(characters.aldeanos, fn x ->
-      {:ok, json} = Jason.encode(%{type: "characterSet", character: "Aldeano"})
-      send(x.pid, {:msg, json})
-    end)
-    Enum.each(characters.medicos, fn x ->
-      {:ok, json} = Jason.encode(%{type: "characterSet", character: "Medico"})
-      send(x.pid, {:msg, json})
-    end)
-    Enum.each(characters.mafiosos, fn x ->
-      {:ok, json} = Jason.encode(%{type: "characterSet", character: "Mafioso"})
-      send(x.pid, {:msg, json})
-    end)
-    Enum.each(characters.policias, fn x ->
-      {:ok, json} = Jason.encode(%{type: "characterSet", character: "Policia"})
-      send(x.pid, {:msg, json})
-    end)
+    {:ok, json} = Jason.encode(%{type: "characterSet", character: "Aldeano"})
+    multicast(characters.aldeanos, json)
+    {:ok, json} = Jason.encode(%{type: "characterSet", character: "Medico"})
+    multicast(characters.medicos, json)
+    {:ok, json} = Jason.encode(%{type: "characterSet", character: "Mafioso"})
+    multicast(characters.mafiosos, json)
+    {:ok, json} = Jason.encode(%{type: "characterSet", character: "Policia"})
+    multicast(characters.policias, json)
 
     characters
   end
+
+  defp multicast(clientes, mensaje_json) do
+    Enum.each(clientes, fn x ->
+      if x.alive == true do
+        send(x.pid, {:msg, mensaje_json})
+      end
+    end)
+  end 
+
 end

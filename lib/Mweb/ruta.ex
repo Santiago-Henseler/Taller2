@@ -13,9 +13,6 @@ defmodule Mweb.Ruta do
     # TODO: si la room ya contiene un usuario con ese nombre modificar el nombre
     if roomPid != nil do
       if GenServer.call(roomPid, {:canJoin}) do
-        players = GenServer.call(roomPid, {:getPlayers})
-
-
         send_whit_cors(conn, 201, roomId)
       else
         send_whit_cors(conn, 404, "Room is full")
