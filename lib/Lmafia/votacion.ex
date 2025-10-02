@@ -7,12 +7,10 @@ defmodule Lmafia.Votacion do
   end
 
   def handle_cast(:restart, _voteInfo) do
-    IO.puts "Handle cast :restart"
     {:noreply, %{}}
   end
 
   def handle_cast({:addVote, vote}, voteInfo) do
-    voteInfo |> dbg
     
     len = Map.get(voteInfo, vote)
 

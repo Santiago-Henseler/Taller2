@@ -11,7 +11,7 @@ function startGame(){
 
     timer(20, (time)=>{
         let timer = document.getElementById("startTimer")
-        timer.innerText = "La partida inica en " +time;
+        timer.innerText = "La partida inicia en " +time;
 
         if(time == 1){
             timer.style.display = "none"

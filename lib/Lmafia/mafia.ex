@@ -19,9 +19,11 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_cast({:start, players}, gameInfo) do
+    dbg gameInfo 
     gameInfo = gameInfo
       |> setCharacters(players)
       |> sendCharacterToPlayer()
+    dbg gameInfo 
 
     Process.send_after(self(), :selectVictim, Constantes.tINICIO_PARTIDA) # A los 20 segundos inicia la partida
     {:noreply, gameInfo}
@@ -110,7 +112,13 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_info(:endDiscussion, gameInfo) do
-    # TODO: determinar como sigue el juego
+    # TODO: Implementar decision final del juego
+    # Si hubo quorum para echar a alguien, se lo echa
+    # Si cant mafiosos >= cant resto  -> Ganaron los mafiosos
+    # Si cant mafiosos = 0            -> Gano el pueblo
+    # Sino, sigue el juego   
+
+    Process.send_after(self(), :endDiscussion, Constantes.tDEBATE)
     {:noreply, gameInfo}
   end
 

@@ -12,8 +12,7 @@ defmodule  Mweb.WSroom do
     IO.puts roomId 
     IO.puts userId
 
-    roomPid = RoomStore.getRoom(roomId)
-    GenServer.cast(roomPid, {:addPlayer, ip, userId})
+    GenServer.cast(RoomStore.getRoom(roomId), {:addPlayer, ip, userId})
     {:cowboy_websocket, req, state}
   end
 
@@ -48,8 +47,7 @@ defmodule  Mweb.WSroom do
     [_padd, _ws, roomId, userId] = String.split(req.path, "/")
 
     # PROBLEMA borro por nombre => si hay nombres repetidos borro a todos los q tienen ese nombre
-    roomPid = RoomStore.getRoom(roomId)
-    GenServer.cast(roomPid, {:removePlayer, userId})
+    GenServer.cast(RoomStore.getRoom(roomId), {:removePlayer, userId})
 
     :ok
   end
