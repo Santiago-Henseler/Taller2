@@ -2,13 +2,13 @@ defmodule Constantes do
     @moduledoc false
     @aldeanos 2
     @mafiosos 2
-    @policias 0
-    @medicos 0
+    @policias 2
+    @medicos 2
 
-    @tiempo_transicion_estado 1000
-    @tiempo_inicio_partida 20000
-    @tiempo_debate_grupo 60000      
-    @tiempo_debate_final 180000
+    @tiempo_transicion_estado 1000  #  1 segundo
+    @tiempo_inicio_partida 10000    # 10 segundos
+    @tiempo_debate_grupo 60000      #  1 minuto      
+    @tiempo_debate_final 180000     #  3 minutos
 
     defmacro nALDEANOS, do: @aldeanos
     defmacro nMAFIOSOS, do: @mafiosos

@@ -46,27 +46,21 @@ defmodule Lmafia.Votacion do
       voteInfo |> Enum.sort_by(fn {_k, v} -> v end, :desc) |> Enum.take(2)
 
     {firstK, firstV} = Enum.at(top2, 0)
-    {secondK, secondV} = Enum.at(top2, 1)
+    {_secondK, secondV} = Enum.at(top2, 1)
 
     if firstV == secondV do
-      # Si hay empate elijo al azar entre los 2 primeros
-      elements = [firstK, secondK]
-      pos = Enum.random(0..1)
-      Enum.at(elements, pos)
-    else
-      firstK
-    end
-  end
-
-  defp getMax(voteInfo) do
-
-    if  map_size(voteInfo) > 0 do
-      {firstK, _firstV} = Enum.at(voteInfo, 0)
-      firstK
-    else
+      # Si hay empate no devuelvo nada (no hubo quorum, se joden por nabos) 
       nil
+    else
+      firstK
     end
-
   end
+
+  defp getMax(voteInfo) when map_size(voteInfo) > 0 do
+    {firstK, _firstV} = Enum.at(voteInfo, 0)
+    firstK
+  end
+
+  defp getMax(_voteInfo), do: nil
 
 end

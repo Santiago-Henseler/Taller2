@@ -16,7 +16,7 @@ defmodule Lmafia.Mafia do
       
       votacion:  pid,
       victimSelect: nil,
-      saveSelect: nil,
+      saveSelect: [],
     }}
   end
 
@@ -37,7 +37,8 @@ defmodule Lmafia.Mafia do
 
   def handle_cast({:saveSelect, saveId}, gameInfo) do
     GenServer.cast(gameInfo.votacion, {:addVote, saveId})
-    {:noreply, revive(saveId, gameInfo)}
+#    {:noreply, revive(saveId, gameInfo)}
+    {:noreply, gameInfo}
   end
 
   def handle_call({:isMafia, userName}, _pid, gameInfo) do
@@ -47,7 +48,7 @@ defmodule Lmafia.Mafia do
   def handle_info(:selectVictim, gameInfo) do
     # selecionar victimas vivas
     timestamp = timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)
-    victims = gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias 
+    victims = get_jugadores_vivos(gameInfo)
     {:ok, json} = Jason.encode(%{type: "action", action: "selectVictim", victims: Enum.map(victims, fn p -> p.userName end), timestamp_select_victims: timestamp})
     multicast(gameInfo.mafiosos, json)
     Process.send_after(self(), :kill, Constantes.tDEBATE_GRUPO)
@@ -55,32 +56,38 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_info(:kill, gameInfo) do
-
-    killed = GenServer.call(gameInfo.votacion, :getWin)
-    GenServer.cast(gameInfo.votacion, :restart)
-
+    killed = getWin(gameInfo)
     gameInfo = kill(killed, gameInfo)
 
     Process.send_after(self(), :medics, Constantes.tTRANSICION) # Al segundo levanto a los medicos
-
     {:noreply, %{gameInfo | victimSelect: killed}}
   end
 
   def handle_info(:medics, gameInfo) do
-    players = gameInfo.mafiosos ++ gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
-    {:ok, json} = Jason.encode(%{type: "action", action: "savePlayer", players: Enum.map(players, fn p -> p.userName end)})
+    timestamp = timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)
+    players = get_jugadores_vivos(gameInfo)
+    {:ok, json} = Jason.encode(%{type: "action", action: "savePlayer", players: Enum.map(players, fn p -> p.userName end), timestamp_select_saved: timestamp})
     multicast(gameInfo.medicos, json)
-    Process.send_after(self(), :cops, 13000)
 
+    Process.send_after(self(), :cure, Constantes.tDEBATE_GRUPO)
     {:noreply, gameInfo}
   end
+
+  def handle_info(:cure, gameInfo) do
+    cured = getWin(gameInfo)
+    gameInfo = kill(killed, gameInfo)
+
+    Process.send_after(self(), :medics, Constantes.tTRANSICION) # Al segundo levanto a los medicos
+    {:noreply, %{gameInfo | victimSelect: killed}}
+  end
+
 
   def handle_info(:cops, gameInfo) do
     players = gameInfo.mafiosos ++ gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
     {:ok, json} = Jason.encode(%{type: "action", action: "selectGuilty", players: Enum.map(players, fn p -> p.userName end)})
     multicast(gameInfo.medicos, json)
     
-    Process.send_after(self(), :discussion, 13000)
+    Process.send_after(self(), :discussion, Constantes.tDEBATE_GRUPO)
     {:noreply, gameInfo}
   end
 
@@ -93,17 +100,50 @@ defmodule Lmafia.Mafia do
     {:noreply, gameInfo}
   end
 
-  def handle_info(:endDiscussion, gameInfo) do
-    # TODO: Implementar decision final del juego
-    # Si hubo quorum para echar a alguien, se lo echa
-    # Si cant mafiosos >= cant resto  -> Ganaron los mafiosos
-    # Si cant mafiosos = 0            -> Gano el pueblo
-    # Sino, sigue el juego   
-
-    Process.send_after(self(), :selectVictim, Constantes.tTRANSICION)
+  def handle_info(:goodEnding, gameInfo) do
+    # TODO: Good ending (GANO EL PUEBLO)    
     {:noreply, gameInfo}
   end
 
+  def handle_info(:badEnding, gameInfo) do
+    # TODO: Bad ending  (GANO LA MAFIA)
+    {:noreply, gameInfo}
+  end
+
+  def handle_info(:endDiscussion, gameInfo) do
+    # Si hubo quorum para echar a alguien, se lo echa
+    gameInfo = kill(getWin(gameInfo), gameInfo)
+  
+    # Definicion final
+    # Si cant mafiosos >= cant resto  -> Ganaron los mafiosos
+    # Si cant mafiosos = 0            -> Gano el pueblo
+    # Sino, sigue el juego   
+    cant_mafiosos = get_len_vivos_grupo(gameInfo.mafiosos)
+    cant_pueblo = get_len_vivos_grupo(gameInfo.aldeanos ++ gameInfo.medicos ++ gameInfo.policias)
+
+    cond do
+      cant_mafiosos == 0 -> 
+        Process.send_after(self(), :goodEnding, Constantes.tTRANSICION)
+      cant_mafiosos >= cant_pueblo ->
+        Process.send_after(self(), :badEnding, Constantes.tTRANSICION)
+      true ->
+        Process.send_after(self(), :selectVictim, Constantes.tTRANSICION)
+    end
+    
+    {:noreply, gameInfo}
+  end
+
+  defp get_jugadores_vivos(gameInfo) do 
+    players = gameInfo.mafiosos ++ gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
+    Enum.map(players, fn x -> if x.alive do x end end)      
+  end
+
+  defp get_len_vivos_grupo(grupo) do
+    Enum.count(grupo, fn x -> x.alive end)
+  end
+
+  defp kill(nil, gameInfo), do: gameInfo 
+  
   defp kill(userName, gameInfo) do
     changeAliveState(userName, false, gameInfo)
   end
@@ -131,15 +171,14 @@ defmodule Lmafia.Mafia do
   end
 
   defp setCharacters(gameInfo, players) do
-
     players = Enum.shuffle(players)
 
-    {aldeanos, rest}    = Enum.split(players, Constantes.nALDEANOS)
-    #{medicos, rest}    = Enum.split(rest, Constantes.nMEDICOS)
-    {mafiosos, _rest}   = Enum.split(rest, Constantes.nMAFIOSOS)
-    #{policias, _rest}   = Enum.split(rest, Constantes.nPOLICIAS)
+    {aldeanos, rest}  = Enum.split(players, Constantes.nALDEANOS)
+    {medicos,  rest}  = Enum.split(rest, Constantes.nMEDICOS)
+    {mafiosos, rest}  = Enum.split(rest, Constantes.nMAFIOSOS)
+    {policias, _rest} = Enum.split(rest, Constantes.nPOLICIAS)
 
-    %{gameInfo | aldeanos: aldeanos, mafiosos: mafiosos} #,medicos:  medicos, policias:  policias}
+    %{gameInfo | aldeanos: aldeanos, mafiosos: mafiosos ,medicos:  medicos, policias:  policias}
   end
 
   defp sendCharacterToPlayer(characters) do
@@ -168,5 +207,12 @@ defmodule Lmafia.Mafia do
       end
     end)
   end 
+
+  defp getWin(gameInfo) do
+    winner = GenServer.call(gameInfo.votacion, :getWin)
+    GenServer.cast(gameInfo.votacion, :restart)
+
+    winner
+  end
 
 end

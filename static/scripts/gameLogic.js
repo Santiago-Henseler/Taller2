@@ -26,10 +26,10 @@ function doAction(action){
             selectVictim(action.victims, action.timestamp_select_victims)
             break;
         case "savePlayer":
-            savePlayer(action.players)
+            savePlayer(action.players, action.timestamp_select_saved)
             break;
         case "selectGuilty":
-            selectGuilty(action.players)
+            selectGuilty(action.players, action.timestamp_select_guilty)
             break;
         default: break;
     }
@@ -39,12 +39,43 @@ function selectGuilty(players){
     
 }
 
-function savePlayer(players){
+function savePlayer(players, timestampSave){
+    let saved = null;
 
+    document.body.innerHTML += '<div id="saveSeccion"><center><h2>Selecciona a quien salvar</h2><h3 id="saveTimer"></h3></center></div>'
+    let saveSeccion = document.getElementById("saveSeccion")
+    
+    timer(getTimeForNextStage(timestampSave), (time)=>{
+        let timer = document.getElementById("saveTimer")
+        timer.innerText = "La seleccion de salvado termina en " +time;
+
+        if(time == 1){
+            timer.style.display = "none"
+            socket.send(JSON.stringify({roomId: roomId, type: "saveSelect", saved: saved}));
+        }
+    })
+
+    for(let save of players){
+        saveSeccion.insertAdjacentHTML("beforeend", `
+        <label>
+            <input type="radio" name="saved" value="${save}"> ${save}
+        </label>
+        <label id="${save}Count"></label>
+        <br>
+    `);
+    }
+
+    const radios = document.querySelectorAll('input[name="saved"]');
+    const resultado = document.getElementById("resultado");
+
+    radios.forEach(radio => {
+      radio.addEventListener("change", () => {
+        saved = radio.value
+      });
+    })
 }
 
 function selectVictim(victims, timestampSelectVictim){
-
     let victim = null;
 
     document.body.innerHTML += '<div id="victimSeccion"><center><h2>Selecciona tu victima</h2><h3 id="victimTimer"></h3></center></div>'
