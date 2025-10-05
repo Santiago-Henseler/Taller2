@@ -13,7 +13,7 @@ defmodule Lmafia.Mafia do
       medicos:   [], # 2 medicos
       mafiosos:  [], # 2 mafiosos
       policias:  [], # 2 policias
-      muertos:   [], 
+      
       votacion:  pid,
       victimSelect: nil,
       saveSelect: nil,
@@ -21,10 +21,11 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_cast({:start, players}, gameInfo) do
+    # Seteamos roles e informamos jugadores     
     gameInfo = gameInfo
       |> setCharacters(players)
       |> sendCharacterToPlayer()
-          
+
     Process.send_after(self(), :selectVictim, Constantes.tINICIO_PARTIDA) # A los 20 segundos inicia la partida
     {:noreply, gameInfo}
   end
@@ -45,10 +46,11 @@ defmodule Lmafia.Mafia do
 
   def handle_info(:selectVictim, gameInfo) do
     # selecionar victimas vivas
+    timestamp = timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)
     victims = gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias 
-    {:ok, json} = Jason.encode(%{type: "action", action: "selectVictim", victims: Enum.map(victims, fn p -> p.userName end)})
+    {:ok, json} = Jason.encode(%{type: "action", action: "selectVictim", victims: Enum.map(victims, fn p -> p.userName end), timestamp_select_victims: timestamp})
     multicast(gameInfo.mafiosos, json)
-    Process.send_after(self(), :kill, 13000)
+    Process.send_after(self(), :kill, Constantes.tDEBATE_GRUPO)
     {:noreply, gameInfo}
   end
 
@@ -141,17 +143,23 @@ defmodule Lmafia.Mafia do
   end
 
   defp sendCharacterToPlayer(characters) do
-    {:ok, json} = Jason.encode(%{type: "characterSet", character: "Aldeano"})
+    timestamp = timestamp_plus_miliseconds(Constantes.tINICIO_PARTIDA)
+
+    {:ok, json} = Jason.encode(%{type: "characterSet", character: "Aldeano", timestamp_game_starts: timestamp})
     multicast(characters.aldeanos, json)
-    {:ok, json} = Jason.encode(%{type: "characterSet", character: "Medico"})
+    {:ok, json} = Jason.encode(%{type: "characterSet", character: "Medico", timestamp_game_starts: timestamp})
     multicast(characters.medicos, json)
-    {:ok, json} = Jason.encode(%{type: "characterSet", character: "Mafioso"})
+    {:ok, json} = Jason.encode(%{type: "characterSet", character: "Mafioso", timestamp_game_starts: timestamp})
     multicast(characters.mafiosos, json)
-    {:ok, json} = Jason.encode(%{type: "characterSet", character: "Policia"})
+    {:ok, json} = Jason.encode(%{type: "characterSet", character: "Policia", timestamp_game_starts: timestamp})
     multicast(characters.policias, json)
 
     characters
   end
+
+  defp timestamp_plus_miliseconds(miliseconds) do
+    DateTime.add(DateTime.utc_now(),miliseconds, :millisecond)
+  end 
 
   defp multicast(clientes, mensaje_json) do
     Enum.each(clientes, fn x ->

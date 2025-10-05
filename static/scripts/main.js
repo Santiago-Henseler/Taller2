@@ -37,7 +37,7 @@ function connectWebSocket(){
                 break;
             case "characterSet": 
                 setCharacter(data.character);
-                startGame();
+                startGame(data.timestamp_game_starts);
                 break;
             case "action":
                 doAction(data);

@@ -6,10 +6,10 @@ function setCharacter(characterType){
     document.body.innerHTML += `<center><h3>Sos un ${character}</h3></center>`;
 }
 
-function startGame(){
+function startGame(timestampGameStarts){
     document.body.innerHTML += '<center><h3 id="startTimer"></h3></center>'
-
-    timer(20, (time)=>{
+    
+    timer( getTimeForNextStage(timestampGameStarts), (time)=>{
         let timer = document.getElementById("startTimer")
         timer.innerText = "La partida inicia en " +time;
 
@@ -23,7 +23,7 @@ function doAction(action){
 
     switch(action.action){
         case "selectVictim":
-            selectVictim(action.victims)
+            selectVictim(action.victims, action.timestamp_select_victims)
             break;
         case "savePlayer":
             savePlayer(action.players)
@@ -43,14 +43,14 @@ function savePlayer(players){
 
 }
 
-function selectVictim(victims){
+function selectVictim(victims, timestampSelectVictim){
 
     let victim = null;
 
     document.body.innerHTML += '<div id="victimSeccion"><center><h2>Selecciona tu victima</h2><h3 id="victimTimer"></h3></center></div>'
     let victimSeccion = document.getElementById("victimSeccion")
     
-    timer(100, (time)=>{
+    timer(getTimeForNextStage(timestampSelectVictim), (time)=>{
         let timer = document.getElementById("victimTimer")
         timer.innerText = "La seleccion de victima termina en " +time;
 
@@ -81,7 +81,7 @@ function selectVictim(victims){
 }
 
 function timer(time, fn){
-
+    console.log("Time = " + time)
     let cuentaRegresiva = setInterval(() => {
         fn(time)
         time--;
@@ -90,4 +90,21 @@ function timer(time, fn){
         }
     }, 1000);
 
+}
+
+function getTimeForNextStage(timestampNextStage) {
+    let CurrentDate = new Date()
+    let NextStageDate = new Date(timestampNextStage)
+    let result = Math.floor( ( NextStageDate.getTime() - CurrentDate.getTime() ) / 1000  )
+
+    console.debug("Current date " + CurrentDate )
+    console.debug("Next Stage " + NextStageDate )
+    console.debug("Seconds result " + result )
+
+    if (result > 0) 
+        return result
+    else {
+        console.warn("Este cliente se quedo detras por " + result + " segundos")
+        return 1 
+    }
 }
