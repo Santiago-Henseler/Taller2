@@ -42,27 +42,41 @@ function selectGuilty(players){
 function savePlayer(players, timestampSave){
     let saved = null;
 
-    document.body.innerHTML += '<div id="saveSeccion"><center><h2>Selecciona a quien salvar</h2><h3 id="saveTimer"></h3></center></div>'
     let saveSeccion = document.getElementById("saveSeccion")
-    
+    if (!saveSeccion){
+        document.body.insertAdjacentHTML("beforeend",`
+            <div id="saveSeccion">
+                    <center>
+                        <h2>Selecciona a quien curar</h2>
+                        <h3 id="saveTimer"></h3>
+                    </center>
+                <div id="saveOptions"></div>
+            </div>`); 
+        saveSeccion = document.getElementById("saveSeccion")
+    }
+    saveSeccion.style.display = "block";
+    const optionsContainer = document.getElementById("saveOptions");
+    optionsContainer.innerHTML = "";
+
     timer(getTimeForNextStage(timestampSave), (time)=>{
         let timer = document.getElementById("saveTimer")
         timer.innerText = "La seleccion de salvado termina en " +time;
 
         if(time == 1){
-            timer.style.display = "none"
+            saveSeccion.style.display = "none";
             socket.send(JSON.stringify({roomId: roomId, type: "saveSelect", saved: saved}));
         }
     })
 
     for(let save of players){
-        saveSeccion.insertAdjacentHTML("beforeend", `
+        optionsContainer.insertAdjacentHTML("beforeend", `
         <label>
-            <input type="radio" name="saved" value="${save}"> ${save}
+            <input type="radio" name="save" value="${save}"> ${save}
         </label>
         <label id="${save}Count"></label>
         <br>
     `);
+
     }
 
     const radios = document.querySelectorAll('input[name="saved"]');
@@ -78,21 +92,35 @@ function savePlayer(players, timestampSave){
 function selectVictim(victims, timestampSelectVictim){
     let victim = null;
 
-    document.body.innerHTML += '<div id="victimSeccion"><center><h2>Selecciona tu victima</h2><h3 id="victimTimer"></h3></center></div>'
     let victimSeccion = document.getElementById("victimSeccion")
-    
+    if (!victimSeccion){
+        document.body.insertAdjacentHTML("beforeend",`
+            <div id="victimSeccion">
+                    <center>
+                        <h2>Selecciona tu victima</h2>
+                        <h3 id="victimTimer"></h3>
+                    </center>
+                <div id="victimOptions"></div>
+            </div>`); 
+        victimSeccion = document.getElementById("victimSeccion")
+    } 
+
+    victimSeccion.style.display = "block" ; 
+    const optionsContainer = document.getElementById("victimOptions");
+    optionsContainer.innerHTML = "";
+
     timer(getTimeForNextStage(timestampSelectVictim), (time)=>{
         let timer = document.getElementById("victimTimer")
         timer.innerText = "La seleccion de victima termina en " +time;
 
         if(time == 1){
-            timer.style.display = "none"
+            victimSeccion.style.display = "none";
             socket.send(JSON.stringify({roomId: roomId, type: "victimSelect", victim: victim}));
         }
     })
 
     for(let victim of victims){
-        victimSeccion.insertAdjacentHTML("beforeend", `
+        optionsContainer.insertAdjacentHTML("beforeend", `
         <label>
             <input type="radio" name="victim" value="${victim}"> ${victim}
         </label>
@@ -102,13 +130,13 @@ function selectVictim(victims, timestampSelectVictim){
     }
 
     const radios = document.querySelectorAll('input[name="victim"]');
-    const resultado = document.getElementById("resultado");
-
     radios.forEach(radio => {
       radio.addEventListener("change", () => {
         victim = radio.value
       });
     })
+
+    const resultado = document.getElementById("resultado");
 }
 
 function timer(time, fn){

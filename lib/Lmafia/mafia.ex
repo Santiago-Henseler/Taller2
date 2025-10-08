@@ -75,10 +75,10 @@ defmodule Lmafia.Mafia do
 
   def handle_info(:cure, gameInfo) do
     cured = getWin(gameInfo)
-    gameInfo = kill(killed, gameInfo)
+    gameInfo = revive(cured, gameInfo)
 
     Process.send_after(self(), :medics, Constantes.tTRANSICION) # Al segundo levanto a los medicos
-    {:noreply, %{gameInfo | victimSelect: killed}}
+    {:noreply, %{gameInfo | saveSelect: cured}}
   end
 
 
@@ -135,6 +135,7 @@ defmodule Lmafia.Mafia do
 
   defp get_jugadores_vivos(gameInfo) do 
     players = gameInfo.mafiosos ++ gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
+    players = Enum.shuffle(players)
     Enum.map(players, fn x -> if x.alive do x end end)      
   end
 
