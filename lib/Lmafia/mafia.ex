@@ -77,7 +77,7 @@ defmodule Lmafia.Mafia do
     cured = getWin(gameInfo)
     gameInfo = revive(cured, gameInfo)
 
-    Process.send_after(self(), :medics, Constantes.tTRANSICION) # Al segundo levanto a los medicos
+    Process.send_after(self(), :cops, Constantes.tTRANSICION) # Al segundo levanto a los medicos
     {:noreply, %{gameInfo | saveSelect: cured}}
   end
 
@@ -97,16 +97,6 @@ defmodule Lmafia.Mafia do
     multicast(users,json)
     
     Process.send_after(self(), :endDiscussion, Constantes.tDEBATE_FINAL)
-    {:noreply, gameInfo}
-  end
-
-  def handle_info(:goodEnding, gameInfo) do
-    # TODO: Good ending (GANO EL PUEBLO)    
-    {:noreply, gameInfo}
-  end
-
-  def handle_info(:badEnding, gameInfo) do
-    # TODO: Bad ending  (GANO LA MAFIA)
     {:noreply, gameInfo}
   end
 
@@ -130,6 +120,16 @@ defmodule Lmafia.Mafia do
         Process.send_after(self(), :selectVictim, Constantes.tTRANSICION)
     end
     
+    {:noreply, gameInfo}
+  end  
+
+  def handle_info(:goodEnding, gameInfo) do
+    # TODO: Good ending (GANO EL PUEBLO)    
+    {:noreply, gameInfo}
+  end
+
+  def handle_info(:badEnding, gameInfo) do
+    # TODO: Bad ending  (GANO LA MAFIA)
     {:noreply, gameInfo}
   end
 

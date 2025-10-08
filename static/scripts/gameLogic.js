@@ -35,8 +35,54 @@ function doAction(action){
     }
 }
 
-function selectGuilty(players){
-    
+function selectGuilty(players, timestampGuilty){
+    let guilty = null;
+
+    let guiltySeccion = document.getElementById("guiltySeccion")
+    if (!saveSeccion){
+        document.body.insertAdjacentHTML("beforeend",`
+            <div id="guiltySeccion">
+                    <center>
+                        <h2>Selecciona quien sospechas que es el asesino</h2>
+                        <h3 id="guiltyTimer"></h3>
+                    </center>
+                <div id="guiltyOptions"></div>
+            </div>`); 
+        guiltySeccion = document.getElementById("guiltySeccion")
+    }
+    guiltySeccion.style.display = "block";
+    const optionsContainer = document.getElementById("guiltyOptions");
+    optionsContainer.innerHTML = "";
+
+    timer(getTimeForNextStage(timestampGuilty), (time)=>{
+        let timer = document.getElementById("guiltyTimer")
+        timer.innerText = "La seleccion de sospecha termina en " +time;
+
+        if(time == 1){
+            saveSeccion.style.display = "none";
+            socket.send(JSON.stringify({roomId: roomId, type: "guiltySelect", guilty: guilty}));
+        }
+    })
+
+    for(let g of players){
+        optionsContainer.insertAdjacentHTML("beforeend", `
+        <label>
+            <input type="radio" name="guilty" value="${g}"> ${g}
+        </label>
+        <label id="${g}Count"></label>
+        <br>
+    `);
+
+    }
+
+    const radios = document.querySelectorAll('input[name="guilty"]');
+    const resultado = document.getElementById("resultado");
+
+    radios.forEach(radio => {
+      radio.addEventListener("change", () => {
+        saved = radio.value
+      });
+    })    
 }
 
 function savePlayer(players, timestampSave){

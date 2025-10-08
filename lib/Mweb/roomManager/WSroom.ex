@@ -8,10 +8,6 @@ defmodule  Mweb.WSroom do
 
   # Cuando un nuevo usuario se conecta a la room lo agrego
   def init(req = %{pid: ip, path_info: [roomId, userId]}, state) do
-    IO.puts "Init nuevo user" 
-    IO.puts roomId 
-    IO.puts userId
-
     GenServer.cast(RoomStore.getRoom(roomId), {:addPlayer, ip, userId})
     {:cowboy_websocket, req, state}
   end
@@ -26,12 +22,14 @@ defmodule  Mweb.WSroom do
       {:ok, %{"type" => "ping"}} -> # Para mantener la conexion abierta
         {:reply, {:text, Jason.encode!(%{type: "pong"})}, state}
       {:ok, %{"type" => "victimSelect", "roomId" => roomId, "victim" => victim}} -> # Momento que deciden la victima
-        roomPid = RoomStore.getRoom(roomId)
-        GenServer.cast(roomPid, {:victimSelect, victim})
+        GenServer.cast(RoomStore.getRoom(roomId), {:victimSelect, victim})
         {:ok, state}
-      {:ok, %{"type" => "savedSelect", "roomId" => roomId, "player" => player}} -> # Momento que deciden la victima
-        roomPid = RoomStore.getRoom(roomId)
-        GenServer.cast(roomPid, {:savedSelect, player})
+      {:ok, %{"type" => "saveSelect", "roomId" => roomId, "saved" => player}} -> # Momento que deciden la victima
+        GenServer.cast(RoomStore.getRoom(roomId), {:savedSelect, player})
+        {:ok, state}
+      {:ok, %{"type" => "guiltySelect", "roomId" => roomId, "guilty" => player}} -> # Momento que deciden la victima
+        isMafia = GenServer.cast(RoomStore.getRoom(roomId), {:isMafia, player})
+        send(self, {:msg, isMafia})
         {:ok, state}
       _ ->
         {:ok, state}
