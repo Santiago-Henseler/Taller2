@@ -31,15 +31,38 @@ function doAction(action){
         case "selectGuilty":
             selectGuilty(action.players, action.timestamp_select_guilty)
             break;
+        case "guiltyAnswer":
+            guiltyAnswer(action.isMafia, action.timestamp_guilty_answer)
+            break;
         default: break;
     }
+}
+
+function guiltyAnswer(isMafia, timestamp) {
+    document.body.insertAdjacentHTML("beforeend",`
+        <div id="guiltyAnsweSeccion">
+                <center>
+                    <h2>Su sospecha es ${isMafia}</h2>
+                    <h3 id="guiltyAnswerTimer"></h3>
+                </center>
+        </div>`); 
+    let guiltyAnsweSeccion = document.getElementById("guiltyAnsweSeccion")
+
+    timer(getTimeForNextStage(timestamp), (time)=>{
+        let timer = document.getElementById("guiltyAnswerTimer");
+        timer.innerText = "La confirmación de sospechas termina en " +time;
+
+        if(time == 1){
+            guiltyAnsweSeccion.remove();
+        }
+    })
 }
 
 function selectGuilty(players, timestampGuilty){
     let guilty = null;
 
     let guiltySeccion = document.getElementById("guiltySeccion")
-    if (!saveSeccion){
+    if (!guiltySeccion){
         document.body.insertAdjacentHTML("beforeend",`
             <div id="guiltySeccion">
                     <center>
@@ -59,7 +82,7 @@ function selectGuilty(players, timestampGuilty){
         timer.innerText = "La seleccion de sospecha termina en " +time;
 
         if(time == 1){
-            saveSeccion.style.display = "none";
+            guiltySeccion.style.display = "none";
             socket.send(JSON.stringify({roomId: roomId, type: "guiltySelect", guilty: guilty}));
         }
     })

@@ -47,7 +47,7 @@ defmodule Lmafia.Mafia do
 
   def handle_info(:selectVictim, gameInfo) do
     # selecionar victimas vivas
-    timestamp = timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)
+    timestamp = Constantes.timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)
     victims = get_jugadores_vivos(gameInfo)
     {:ok, json} = Jason.encode(%{type: "action", action: "selectVictim", victims: Enum.map(victims, fn p -> p.userName end), timestamp_select_victims: timestamp})
     multicast(gameInfo.mafiosos, json)
@@ -64,7 +64,7 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_info(:medics, gameInfo) do
-    timestamp = timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)
+    timestamp = Constantes.timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)
     players = get_jugadores_vivos(gameInfo)
     {:ok, json} = Jason.encode(%{type: "action", action: "savePlayer", players: Enum.map(players, fn p -> p.userName end), timestamp_select_saved: timestamp})
     multicast(gameInfo.medicos, json)
@@ -183,7 +183,7 @@ defmodule Lmafia.Mafia do
   end
 
   defp sendCharacterToPlayer(characters) do
-    timestamp = timestamp_plus_miliseconds(Constantes.tINICIO_PARTIDA)
+    timestamp = Constantes.timestamp_plus_miliseconds(Constantes.tINICIO_PARTIDA)
 
     {:ok, json} = Jason.encode(%{type: "characterSet", character: "Aldeano", timestamp_game_starts: timestamp})
     multicast(characters.aldeanos, json)
@@ -196,10 +196,6 @@ defmodule Lmafia.Mafia do
 
     characters
   end
-
-  defp timestamp_plus_miliseconds(miliseconds) do
-    DateTime.add(DateTime.utc_now(),miliseconds, :millisecond)
-  end 
 
   defp multicast(clientes, mensaje_json) do
     Enum.each(clientes, fn x ->

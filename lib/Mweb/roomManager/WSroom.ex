@@ -4,6 +4,7 @@ defmodule  Mweb.WSroom do
   """
   @behaviour :cowboy_websocket
 
+  require Constantes
   alias Mweb.RoomManager.RoomStore
 
   # Cuando un nuevo usuario se conecta a la room lo agrego
@@ -24,13 +25,13 @@ defmodule  Mweb.WSroom do
       {:ok, %{"type" => "victimSelect", "roomId" => roomId, "victim" => victim}} -> # Momento que deciden la victima
         GenServer.cast(RoomStore.getRoom(roomId), {:victimSelect, victim})
         {:ok, state}
-      {:ok, %{"type" => "saveSelect", "roomId" => roomId, "saved" => player}} -> # Momento que deciden la victima
+      {:ok, %{"type" => "saveSelect", "roomId" => roomId, "saved" => player}} -> # Momento que deciden el salvado
         GenServer.cast(RoomStore.getRoom(roomId), {:savedSelect, player})
         {:ok, state}
-      {:ok, %{"type" => "guiltySelect", "roomId" => roomId, "guilty" => player}} -> # Momento que deciden la victima
+      {:ok, %{"type" => "guiltySelect", "roomId" => roomId, "guilty" => player}} -> # Se devuelve si es asesino o no
         isMafia = GenServer.cast(RoomStore.getRoom(roomId), {:isMafia, player})
-        send(self, {:msg, isMafia})
-        {:ok, state}
+        timestamp = Constantes.timestamp_plus_miliseconds(Constantes.tTRANSICION) * 4
+        {:reply, {:text, Jason.encode!(%{type: "action", action: "guiltyAnswer", isMafia: isMafia, timestamp_guilty_answer: timestamp})}}        
       _ ->
         {:ok, state}
     end

@@ -20,4 +20,8 @@ defmodule Constantes do
     defmacro tTRANSICION, do: @tiempo_transicion_estado
     defmacro tDEBATE_GRUPO, do: @tiempo_debate_grupo
     defmacro tDEBATE_FINAL, do: @tiempo_debate_final
+
+    def timestamp_plus_miliseconds(miliseconds) do 
+        DateTime.add(DateTime.utc_now(),miliseconds, :millisecond)
+    end 
 end 
