@@ -41,7 +41,7 @@ defmodule Lmafia.Mafia do
     {:noreply, gameInfo}
   end
 
-  def handle_call({:isMafia, userName}, _pid, gameInfo) do
+  def handle_call({:isMafia, userName}, gameInfo) do
     {:reply, Map.get(gameInfo.mafiosos, userName) != nil, gameInfo}
   end
 
@@ -64,43 +64,52 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_info(:medics, gameInfo) do
+    IO.puts "DEBUG Empezo etapa de medicos"
     timestamp = Constantes.timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)
     players = get_jugadores_vivos(gameInfo)
     {:ok, json} = Jason.encode(%{type: "action", action: "savePlayer", players: Enum.map(players, fn p -> p.userName end), timestamp_select_saved: timestamp})
     multicast(gameInfo.medicos, json)
+    IO.puts "DEBUG Multicast a medicos"
 
     Process.send_after(self(), :cure, Constantes.tDEBATE_GRUPO)
     {:noreply, gameInfo}
   end
 
   def handle_info(:cure, gameInfo) do
+    IO.puts "DEBUG Cure"
     cured = getWin(gameInfo)
     gameInfo = revive(cured, gameInfo)
 
-    Process.send_after(self(), :cops, Constantes.tTRANSICION) # Al segundo levanto a los medicos
+    Process.send_after(self(), :policias, Constantes.tTRANSICION) # Al segundo levanto a los medicos
     {:noreply, %{gameInfo | saveSelect: cured}}
   end
 
 
-  def handle_info(:cops, gameInfo) do
+  def handle_info(:policias, gameInfo) do
+    IO.puts "DEBUG COPS"
+    timestamp = Constantes.timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)
     players = gameInfo.mafiosos ++ gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
-    {:ok, json} = Jason.encode(%{type: "action", action: "selectGuilty", players: Enum.map(players, fn p -> p.userName end)})
-    multicast(gameInfo.medicos, json)
+    {:ok, json} = Jason.encode(%{type: "action", action: "selectGuilty", players: Enum.map(players, fn p -> p.userName end)}, timestamp_select_guilty: timestamp)
+    multicast(gameInfo.policias, json)
     
+    IO.puts "DEBUG Multicast COPS"
     Process.send_after(self(), :discussion, Constantes.tDEBATE_GRUPO)
     {:noreply, gameInfo}
   end
 
   def handle_info(:discussion, gameInfo) do
+    IO.puts "DEBUG Discussion"
     users = gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias ++ gameInfo.mafiosos
     {:ok, json} = Jason.encode(%{type: "action", action: "discussion", victims: Enum.map(users, fn p -> p.userName end)})
     multicast(users,json)
     
+    IO.puts "DEBUG Multicast Discussion"
     Process.send_after(self(), :endDiscussion, Constantes.tDEBATE_FINAL)
     {:noreply, gameInfo}
   end
 
   def handle_info(:endDiscussion, gameInfo) do
+    IO.puts "DEBUG End Discussion"
     # Si hubo quorum para echar a alguien, se lo echa
     gameInfo = kill(getWin(gameInfo), gameInfo)
   
@@ -172,7 +181,7 @@ defmodule Lmafia.Mafia do
   end
 
   defp setCharacters(gameInfo, players) do
-    players = Enum.shuffle(players)
+#    players = Enum.shuffle(players)
 
     {aldeanos, rest}  = Enum.split(players, Constantes.nALDEANOS)
     {medicos,  rest}  = Enum.split(rest, Constantes.nMEDICOS)

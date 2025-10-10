@@ -26,11 +26,13 @@ defmodule  Mweb.WSroom do
         GenServer.cast(RoomStore.getRoom(roomId), {:victimSelect, victim})
         {:ok, state}
       {:ok, %{"type" => "saveSelect", "roomId" => roomId, "saved" => player}} -> # Momento que deciden el salvado
-        GenServer.cast(RoomStore.getRoom(roomId), {:savedSelect, player})
+        GenServer.cast(RoomStore.getRoom(roomId), {:saveSelect, player})
         {:ok, state}
       {:ok, %{"type" => "guiltySelect", "roomId" => roomId, "guilty" => player}} -> # Se devuelve si es asesino o no
-        isMafia = GenServer.cast(RoomStore.getRoom(roomId), {:isMafia, player})
-        timestamp = Constantes.timestamp_plus_miliseconds(Constantes.tTRANSICION) * 4
+        IO.puts "DEBUG dentro guiltySelect"
+        isMafia = GenServer.call(RoomStore.getRoom(roomId), {:isMafia, player})
+        timestamp = Constantes.timestamp_plus_miliseconds(Constantes.tTRANSICION) 
+        IO.puts "DEBUG guiltySelect envio respuesta"
         {:reply, {:text, Jason.encode!(%{type: "action", action: "guiltyAnswer", isMafia: isMafia, timestamp_guilty_answer: timestamp})}}        
       _ ->
         {:ok, state}

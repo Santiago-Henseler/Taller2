@@ -225,10 +225,6 @@ function getTimeForNextStage(timestampNextStage) {
     let NextStageDate = new Date(timestampNextStage)
     let result = Math.floor( ( NextStageDate.getTime() - CurrentDate.getTime() ) / 1000  )
 
-    console.debug("Current date " + CurrentDate )
-    console.debug("Next Stage " + NextStageDate )
-    console.debug("Seconds result " + result )
-
     if (result > 0) 
         return result
     else {
