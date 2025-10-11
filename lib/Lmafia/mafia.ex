@@ -62,7 +62,7 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_info(:kill, gameInfo) do
-    killed = getWin(gameInfo)
+    killed = getWin(:mafisos, gameInfo)
     gameInfo = kill(killed, gameInfo)
 
     Process.send_after(self(), :medics, Timing.get_time(:transicion)) # Al segundo levanto a los medicos
@@ -215,8 +215,8 @@ defmodule Lmafia.Mafia do
     end)
   end 
 
-  defp getWin(gameInfo) do
-    winner = GenServer.call(gameInfo.votacion, :getWin)
+  defp getWin(gameInfo, stage) do
+    winner = GenServer.call(gameInfo.votacion, :getWin, stage)
     GenServer.cast(gameInfo.votacion, :restart)
 
     winner

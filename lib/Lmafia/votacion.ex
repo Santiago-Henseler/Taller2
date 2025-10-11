@@ -37,30 +37,46 @@ defmodule Lmafia.Votacion do
     {:noreply, voteInfo}
   end
 
-  def handle_call(:getWin, _pid, voteInfo) do
-    {:reply,  getMax(voteInfo), voteInfo}
+  def handle_call(:getWin, stage,_pid, voteInfo) do
+    {:reply,  getMax(stage, voteInfo), voteInfo}
   end
 
-  defp getMax(voteInfo) when map_size(voteInfo) >= 2 do
-    top2 =
-      voteInfo |> Enum.sort_by(fn {_k, v} -> v end, :desc) |> Enum.take(2)
+  defp getMax(stage, voteInfo) when map_size(voteInfo) >= 2 do
+    votos_ordenados = voteInfo |> Enum.sort_by(fn {_k, v} -> v end, :desc)
+    returnResultadoVotacion(stage,votos_ordenados)
+  end
 
-    {firstK, firstV} = Enum.at(top2, 0)
-    {_secondK, secondV} = Enum.at(top2, 1)
+  defp returnResultadoVotacion(:mafiosos, votos) do 
+    top2 = votos |> Enum.take(2)
+    {firstK, firstV} = Enum.at(votos, 0)
+    {_secondK, secondV} = Enum.at(votos, 1)
 
     if firstV == secondV do
-      # Si hay empate no devuelvo nada (no hubo quorum, se joden por nabos) 
       nil
     else
       firstK
-    end
+    end  
+  end 
+
+  defp returnResultadoVotacion(:medics, votos) do 
+    # TODO: Como hacemos con los medicos ? Es un comportamiento diferente
+  end 
+
+  defp returnResultadoVotacion(:discussion, votos) do 
+    # La decision final se comporta igual que los mafiosos. No hay quorum, no hace nada
+    returnResultadoVotacion(:mafiosos,votos)    
   end
 
-  defp getMax(voteInfo) when map_size(voteInfo) > 0 do
+  defp returnResultadoVotacion(_, votos) do 
+    # Por las dudas, default es por quorum
+    returnResultadoVotacion(:mafiosos,votos)    
+  end
+  
+  defp getMax(_atom, voteInfo) when map_size(voteInfo) > 0 do
     {firstK, _firstV} = Enum.at(voteInfo, 0)
     firstK
   end
 
-  defp getMax(_voteInfo), do: nil
+  defp getMax(_atom, _voteInfo), do: nil
 
 end
