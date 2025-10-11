@@ -34,8 +34,60 @@ function doAction(action){
         case "guiltyAnswer":
             guiltyAnswer(action.answer, action.timestamp_guilty_answer)
             break;
+        case "discusion":
+            discusion(action.players, action.timestamp_guilty_answer)
+            break;
         default: break;
     }
+}
+
+function discusion(players, timestampVote) {
+    let voted = null;
+
+    let finalVoteSeccion = document.getElementById("finalVoteSeccion")
+    if (!finalVoteSeccion){
+        document.body.insertAdjacentHTML("beforeend",`
+            <div id="finalVoteSeccion">
+                    <center>
+                        <h2>Selecciona quien crees que es un mafioso</h2>
+                        <h3 id="finalVoteTimer"></h3>
+                    </center>
+                <div id="finalVoteOptions"></div>
+            </div>`); 
+        finalVoteSeccion = document.getElementById("finalVoteSeccion")
+    }
+    finalVoteSeccion.style.display = "block";
+    const optionsContainer = document.getElementById("finalVoteOptions");
+    optionsContainer.innerHTML = "";
+
+    timer(getTimeForNextStage(timestampVote), (time)=>{
+        let timer = document.getElementById("finalVoteTimer")
+        timer.innerText = "La seleccion de mafioso PARA ECHARLO termina en " +time;
+
+        if(time == 1){
+            guiltySeccion.style.display = "none";
+            socket.send(JSON.stringify({roomId: roomId, type: "finalVoteSelect", voted: voted}));
+        }
+    })
+
+    for(let p of players){
+        optionsContainer.insertAdjacentHTML("beforeend", `
+        <label>
+            <input type="radio" name="voted" value="${p}"> ${p}
+        </label>
+        <label id="${p}Count"></label>
+        <br>
+    `);
+
+    }
+
+    const radios = document.querySelectorAll('input[name="voted"]');
+
+    radios.forEach(radio => {
+      radio.addEventListener("change", () => {
+        voted = radio.value
+      });
+    })    
 }
 
 function guiltyAnswer(answer, timestamp) {
@@ -99,7 +151,6 @@ function selectGuilty(players, timestampGuilty){
     }
 
     const radios = document.querySelectorAll('input[name="guilty"]');
-    const resultado = document.getElementById("resultado");
 
     radios.forEach(radio => {
       radio.addEventListener("change", () => {
@@ -149,7 +200,6 @@ function savePlayer(players, timestampSave){
     }
 
     const radios = document.querySelectorAll('input[name="saved"]');
-    const resultado = document.getElementById("resultado");
 
     radios.forEach(radio => {
       radio.addEventListener("change", () => {
@@ -204,8 +254,6 @@ function selectVictim(victims, timestampSelectVictim){
         victim = radio.value
       });
     })
-
-    const resultado = document.getElementById("resultado");
 }
 
 function timer(time, fn){

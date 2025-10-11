@@ -33,6 +33,9 @@ defmodule  Mweb.WSroom do
         isMafiaAnswer = GenServer.call(RoomStore.getRoom(roomId), {:isMafia, player})
         timestamp = Constantes.timestamp_plus_miliseconds(Constantes.tTRANSICION) 
         {:reply, {:text, Jason.encode!(%{type: "action", action: "guiltyAnswer", answer: isMafiaAnswer, timestamp_guilty_answer: timestamp})}, state}        
+      {:ok, %{"type" => "finalVoteSelect", "roomId" => roomId, "voted" => player}} -> # Momento que deciden el salvado
+        GenServer.cast(RoomStore.getRoom(roomId), {:saveSelect, player})
+        {:ok, state}
       _ ->
         {:ok, state}
     end

@@ -41,6 +41,12 @@ defmodule Lmafia.Mafia do
     {:noreply, gameInfo}
   end
 
+  def handle_cast({:finalVoteSelect, voted}, gameInfo) do
+    GenServer.cast(gameInfo.votacion, {:addVote, voted})
+#    {:noreply, revive(saveId, gameInfo)}
+    {:noreply, gameInfo}
+  end
+
   def handle_call({:isMafia, userName}, _pid, gameInfo) do
     {:reply, isMafia(gameInfo.mafiosos,userName), gameInfo}
   end
@@ -93,8 +99,8 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_info(:discussion, gameInfo) do
-    users = gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias ++ gameInfo.mafiosos
-    {:ok, json} = Jason.encode(%{type: "action", action: "discussion", victims: Enum.map(users, fn p -> p.userName end)})
+    users = get_jugadores_vivos(gameInfo)
+    {:ok, json} = Jason.encode(%{type: "action", action: "discusion", players: Enum.map(users, fn p -> p.userName end)})
     multicast(users,json)
     
     Process.send_after(self(), :endDiscussion, Constantes.tDEBATE_FINAL)
