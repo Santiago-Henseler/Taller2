@@ -63,12 +63,12 @@ defmodule Mweb.RoomManager.Room do
     {:noreply, state}
   end
 
-  def handle_call({:isMafia, suspectId},state) do
-    IO.puts "DEBUG pre isMafia"
-    isMafia = GenServer.call(state.gameController, {:isMafia, suspectId})
-    IO.puts "DEBUG post isMafia"
+  def handle_call({:isMafia, suspectId},_pid,state) when suspectId != nil do
+    {:reply, GenServer.call(state.gameController, {:isMafia, suspectId}), state}
+  end
 
-    {:reply, isMafia,state}
+  def handle_call({:isMafia, nil},_pid,state) do
+    {:reply, "No ingreso sospecha, perdió el turno", state}
   end
 
   def handle_call({:getPlayers}, _pid, state) do

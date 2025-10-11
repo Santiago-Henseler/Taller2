@@ -32,17 +32,17 @@ function doAction(action){
             selectGuilty(action.players, action.timestamp_select_guilty)
             break;
         case "guiltyAnswer":
-            guiltyAnswer(action.isMafia, action.timestamp_guilty_answer)
+            guiltyAnswer(action.answer, action.timestamp_guilty_answer)
             break;
         default: break;
     }
 }
 
-function guiltyAnswer(isMafia, timestamp) {
+function guiltyAnswer(answer, timestamp) {
     document.body.insertAdjacentHTML("beforeend",`
         <div id="guiltyAnsweSeccion">
                 <center>
-                    <h2>Su sospecha es ${isMafia}</h2>
+                    <h2>${answer}</h2>
                     <h3 id="guiltyAnswerTimer"></h3>
                 </center>
         </div>`); 
@@ -103,7 +103,7 @@ function selectGuilty(players, timestampGuilty){
 
     radios.forEach(radio => {
       radio.addEventListener("change", () => {
-        saved = radio.value
+        guilty = radio.value
       });
     })    
 }
