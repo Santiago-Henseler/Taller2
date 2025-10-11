@@ -1,5 +1,6 @@
 defmodule Lmafia.Mafia do
   require Constantes
+  require Timing
   alias Lmafia.Votacion
 
   use GenServer
@@ -26,7 +27,7 @@ defmodule Lmafia.Mafia do
       |> setCharacters(players)
       |> sendCharacterToPlayer()
 
-    Process.send_after(self(), :selectVictim, Constantes.tINICIO_PARTIDA) # A los 20 segundos inicia la partida
+    Process.send_after(self(), :selectVictim, Timing.get_time(:start)) # A los 20 segundos inicia la partida
     {:noreply, gameInfo}
   end
 
@@ -52,12 +53,11 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_info(:selectVictim, gameInfo) do
-    # selecionar victimas vivas
-    timestamp = Constantes.timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)
+    timestamp = Timing.get_timestamp_stage(:selectVictim)
     victims = get_jugadores_vivos(gameInfo)
     {:ok, json} = Jason.encode(%{type: "action", action: "selectVictim", victims: Enum.map(victims, fn p -> p.userName end), timestamp_select_victims: timestamp})
     multicast(gameInfo.mafiosos, json)
-    Process.send_after(self(), :kill, Constantes.tDEBATE_GRUPO)
+    Process.send_after(self(), :kill, Timing.get_time(:selectVictim))
     {:noreply, gameInfo}
   end
 
@@ -65,17 +65,17 @@ defmodule Lmafia.Mafia do
     killed = getWin(gameInfo)
     gameInfo = kill(killed, gameInfo)
 
-    Process.send_after(self(), :medics, Constantes.tTRANSICION) # Al segundo levanto a los medicos
+    Process.send_after(self(), :medics, Timing.get_time(:transicion)) # Al segundo levanto a los medicos
     {:noreply, %{gameInfo | victimSelect: killed}}
   end
 
   def handle_info(:medics, gameInfo) do
-    timestamp = Constantes.timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)
+    timestamp = Timing.get_timestamp_stage(:medics)
     players = get_jugadores_vivos(gameInfo)
     {:ok, json} = Jason.encode(%{type: "action", action: "savePlayer", players: Enum.map(players, fn p -> p.userName end), timestamp_select_saved: timestamp})
     multicast(gameInfo.medicos, json)
 
-    Process.send_after(self(), :cure, Constantes.tDEBATE_GRUPO)
+    Process.send_after(self(), :cure, Timing.get_time(:medics))
     {:noreply, gameInfo}
   end
 
@@ -83,27 +83,28 @@ defmodule Lmafia.Mafia do
     cured = getWin(gameInfo)
     gameInfo = revive(cured, gameInfo)
 
-    Process.send_after(self(), :policias, Constantes.tTRANSICION) # Al segundo levanto a los medicos
+    Process.send_after(self(), :policias, Timing.get_time(:transicion)) # Al segundo levanto a los medicos
     {:noreply, %{gameInfo | saveSelect: cured}}
   end
 
 
   def handle_info(:policias, gameInfo) do
-    timestamp = Constantes.timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)
+    timestamp = Timing.get_timestamp_stage(:policias)
     players = get_jugadores_vivos(gameInfo)
     {:ok, json} = Jason.encode(%{type: "action", action: "selectGuilty", players: Enum.map(players, fn p -> p.userName end), timestamp_select_guilty: timestamp})
     multicast(gameInfo.policias, json)
     
-    Process.send_after(self(), :discussion, Constantes.tDEBATE_GRUPO)
+    Process.send_after(self(), :discussion, Timing.get_time(:policias))
     {:noreply, gameInfo}
   end
 
   def handle_info(:discussion, gameInfo) do
+    timestamp = Timing.get_timestamp_stage(:discussion)
     users = get_jugadores_vivos(gameInfo)
-    {:ok, json} = Jason.encode(%{type: "action", action: "discusion", players: Enum.map(users, fn p -> p.userName end)})
+    {:ok, json} = Jason.encode(%{type: "action", action: "discusion", players: Enum.map(users, fn p -> p.userName end), timestamp_final_discusion: timestamp})
     multicast(users,json)
     
-    Process.send_after(self(), :endDiscussion, Constantes.tDEBATE_FINAL)
+    Process.send_after(self(), :endDiscussion, Timing.get_time(:discussion))
     {:noreply, gameInfo}
   end
 
@@ -119,14 +120,15 @@ defmodule Lmafia.Mafia do
     cant_mafiosos = get_len_vivos_grupo(gameInfo.mafiosos)
     cant_pueblo = get_len_vivos_grupo(gameInfo.aldeanos ++ gameInfo.medicos ++ gameInfo.policias)
 
+    timestamp = Timing.get_time(:transicion)
     cond do
       cant_mafiosos == 0 -> 
-        Process.send_after(self(), :goodEnding, Constantes.tTRANSICION)
+        Process.send_after(self(), :goodEnding, timestamp)
       cant_mafiosos >= cant_pueblo ->
-        Process.send_after(self(), :badEnding, Constantes.tTRANSICION)
+        Process.send_after(self(), :badEnding, timestamp)
       true ->
-        Process.send_after(self(), :selectVictim, Constantes.tTRANSICION)
-    end
+        Process.send_after(self(), :selectVictim, timestamp)
+      end
     
     {:noreply, gameInfo}
   end  
@@ -191,7 +193,7 @@ defmodule Lmafia.Mafia do
   end
 
   defp sendCharacterToPlayer(characters) do
-    timestamp = Constantes.timestamp_plus_miliseconds(Constantes.tINICIO_PARTIDA)
+    timestamp = Timing.get_timestamp_stage(:start)
 
     {:ok, json} = Jason.encode(%{type: "characterSet", character: "Aldeano", timestamp_game_starts: timestamp})
     multicast(characters.aldeanos, json)

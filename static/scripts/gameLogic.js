@@ -35,7 +35,7 @@ function doAction(action){
             guiltyAnswer(action.answer, action.timestamp_guilty_answer)
             break;
         case "discusion":
-            discusion(action.players, action.timestamp_guilty_answer)
+            discusion(action.players, action.timestamp_final_discusion)
             break;
         default: break;
     }
@@ -65,7 +65,7 @@ function discusion(players, timestampVote) {
         timer.innerText = "La seleccion de mafioso PARA ECHARLO termina en " +time;
 
         if(time == 1){
-            guiltySeccion.style.display = "none";
+            finalVoteSeccion.style.display = "none";
             socket.send(JSON.stringify({roomId: roomId, type: "finalVoteSelect", voted: voted}));
         }
     })

@@ -20,8 +20,60 @@ defmodule Constantes do
     defmacro tTRANSICION, do: @tiempo_transicion_estado
     defmacro tDEBATE_GRUPO, do: @tiempo_debate_grupo
     defmacro tDEBATE_FINAL, do: @tiempo_debate_final
+end 
+
+defmodule Timing do
+    require Constantes
+
+    def get_time(:start) do
+        Constantes.tINICIO_PARTIDA
+    end
+
+    def get_time(:transicion) do
+        Constantes.tTRANSICION
+    end
+
+    def get_time(:selectVictim) do
+        Constantes.tDEBATE_GRUPO
+    end
+
+    def get_time(:medics) do
+        Constantes.tDEBATE_GRUPO
+    end
+
+    def get_time(:policias) do
+        Constantes.tDEBATE_GRUPO
+    end
+
+    def get_time(:discussion) do
+        Constantes.tDEBATE_FINAL
+    end
+
+    def get_timestamp_stage(:start) do 
+        timestamp_plus_miliseconds(Constantes.tINICIO_PARTIDA)
+    end 
+
+    def get_timestamp_stage(:selectVictim) do 
+        timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)
+    end 
+
+    def get_timestamp_stage(:medics) do 
+        timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)
+    end 
+
+    def get_timestamp_stage(:policias) do
+        timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)        
+    end
+
+    def get_timestamp_stage(:discussion) do
+        timestamp_plus_miliseconds(Constantes.tDEBATE_FINAL)        
+    end
+
+    def get_timestamp_stage(:transicion) do
+        timestamp_plus_miliseconds(Constantes.tTRANSICION)        
+    end
 
     def timestamp_plus_miliseconds(miliseconds) do 
         DateTime.add(DateTime.utc_now(),miliseconds, :millisecond)
     end 
-end 
+end

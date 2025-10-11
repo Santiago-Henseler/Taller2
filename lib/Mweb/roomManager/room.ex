@@ -2,6 +2,7 @@ defmodule Mweb.RoomManager.Room do
   @moduledoc """
     Modulo encargado de manejar una room
   """
+  require Timing
   require Constantes
   use GenServer
 
