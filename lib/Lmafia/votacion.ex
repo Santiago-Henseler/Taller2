@@ -59,7 +59,17 @@ defmodule Lmafia.Votacion do
   end 
 
   defp returnResultadoVotacion(:medics, votos) do 
-    # TODO: Como hacemos con los medicos ? Es un comportamiento diferente
+    {sobredosis, salvados} =
+      votos
+        |> Enum.reduce({[], []}, fn {player, votes}, {acc_sobredosis,acc_salvados} ->
+          cond do
+            votes > 1 -> {[player | acc_sobredosis], acc_salvados}
+            votes == 1 -> {acc_sobredosis, [player | acc_salvados]}
+            true -> {acc_sobredosis, acc_salvados}  
+        end
+      end)
+    
+    {sobredosis, salvados}
   end 
 
   defp returnResultadoVotacion(:discussion, votos) do 

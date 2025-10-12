@@ -25,29 +25,13 @@ end
 defmodule Timing do
     require Constantes
 
-    def get_time(:start) do
-        Constantes.tINICIO_PARTIDA
-    end
-
-    def get_time(:transicion) do
-        Constantes.tTRANSICION
-    end
-
-    def get_time(:selectVictim) do
-        Constantes.tDEBATE_GRUPO
-    end
-
-    def get_time(:medics) do
-        Constantes.tDEBATE_GRUPO
-    end
-
-    def get_time(:policias) do
-        Constantes.tDEBATE_GRUPO
-    end
-
-    def get_time(:discussion) do
-        Constantes.tDEBATE_FINAL
-    end
+    def get_time(:start), do: Constantes.tINICIO_PARTIDA
+    def get_time(:transicion), do: Constantes.tTRANSICION
+    def get_time(:selectVictim), do: Constantes.tDEBATE_GRUPO
+    def get_time(:medics), do: Constantes.tDEBATE_GRUPO
+    def get_time(:policias), do: Constantes.tDEBATE_GRUPO
+    def get_time(:preDiscussion), do: Constantes.tDEBATE_GRUPO
+    def get_time(:discussion), do: Constantes.tDEBATE_FINAL
 
     def get_timestamp_stage(:start) do 
         timestamp_plus_miliseconds(Constantes.tINICIO_PARTIDA)
@@ -62,6 +46,10 @@ defmodule Timing do
     end 
 
     def get_timestamp_stage(:policias) do
+        timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)        
+    end
+
+    def get_timestamp_stage(:preDiscussion) do
         timestamp_plus_miliseconds(Constantes.tDEBATE_GRUPO)        
     end
 
