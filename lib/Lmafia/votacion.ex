@@ -48,8 +48,8 @@ defmodule Lmafia.Votacion do
 
   defp returnResultadoVotacion(:mafiosos, votos) do 
     top2 = votos |> Enum.take(2)
-    {firstK, firstV} = Enum.at(votos, 0)
-    {_secondK, secondV} = Enum.at(votos, 1)
+    {firstK, firstV} = Enum.at(top2, 0)
+    {_secondK, secondV} = Enum.at(top2, 1)
 
     if firstV == secondV do
       nil

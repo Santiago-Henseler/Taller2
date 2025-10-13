@@ -28,6 +28,8 @@ defmodule Lmafia.Mafia do
       |> setCharacters(players)
       |> sendCharacterToPlayer()
 
+    dbg(gameInfo)
+
     Process.send_after(self(), :selectVictim, Timing.get_time(:start)) # A los 20 segundos inicia la partida
     {:noreply, gameInfo}
   end
@@ -65,10 +67,10 @@ defmodule Lmafia.Mafia do
   def handle_info(:kill, gameInfo) do
     victimSelect = getWin(gameInfo, :mafiosos)
     gameInfo = %{gameInfo | victimSelect: victimSelect}
-#    gameInfo = kill(killed, gameInfo)
+#    gameInfo = kill(victimSelect, gameInfo)
 
     Process.send_after(self(), :medics, Timing.get_time(:transicion)) # Al segundo levanto a los medicos
-    {:noreply, %{gameInfo | victimSelect: killed}}
+    {:noreply, gameInfo}
   end
 
   def handle_info(:medics, gameInfo) do
@@ -102,9 +104,9 @@ defmodule Lmafia.Mafia do
   end
 
   def handle_info(:preDiscussion, gameInfo) do
-    result = get_night_result(gameInfo)
+    {result,gameInfo} = night_result(gameInfo)
     timestamp = Timing.get_timestamp_stage(:preDiscussion)
-    players = get_jugadores(:all)     
+    players = get_jugadores(:all, gameInfo)     
     {:ok, json} = Jason.encode(%{type: "action", action: "nightResult", result: result, timestamp_select_guilty: timestamp})
     multicast(players, json)
     
@@ -118,21 +120,40 @@ defmodule Lmafia.Mafia do
     {:ok, json} = Jason.encode(%{type: "action", action: "discusion", players: Enum.map(users, fn p -> p.userName end), timestamp_final_discusion: timestamp})
     multicast(users,json)
     
-    Process.send_after(self(), :endDiscussion, Timing.get_time(:discussion))
+    Process.send_after(self(), :defineDiscussion, Timing.get_time(:discussion))
+    {:noreply, gameInfo}
+  end
+
+  def handle_info(:defineDiscussion, gameInfo) do
+    # Si hubo quorum para echar a alguien, se lo echa
+    echado = getWin(gameInfo, :discussion)
+    gameInfo = user_pasa_a_muertos(gameInfo,echado)    
+    mensaje = ""
+    if echado do 
+      mensaje = "Decision final: " + echado + " fue linchado"
+    else 
+      mensaje = "Nadie fue linchado"
+    end 
+
+    timestamp = Timing.get_timestamp_stage(:transicion)
+    users = get_jugadores(:all, gameInfo)
+    {:ok, json} = Jason.encode(%{type: "action", action: "discusionResult", mensaje: mensaje, timestamp_define_discusion: timestamp})
+    multicast(users,json)
+
+    Process.send_after(self(), :endDiscussion, Timing.get_time(:transicion))
     {:noreply, gameInfo}
   end
 
   def handle_info(:endDiscussion, gameInfo) do
-    IO.puts "DEBUG End Discussion"
     # Si hubo quorum para echar a alguien, se lo echa
-    gameInfo = kill(getWin(gameInfo, :discussion), gameInfo)
+    gameInfo = user_pasa_a_muertos(gameInfo,getWin(gameInfo, :discussion))    
   
     # Definicion final
     # Si cant mafiosos >= cant resto  -> Ganaron los mafiosos
     # Si cant mafiosos = 0            -> Gano el pueblo
     # Sino, sigue el juego   
-    cant_mafiosos = get_len_vivos_grupo(gameInfo.mafiosos)
-    cant_pueblo = get_len_vivos_grupo(gameInfo.aldeanos ++ gameInfo.medicos ++ gameInfo.policias)
+    cant_mafiosos = get_len_vivos(:mafiosos, gameInfo)
+    cant_pueblo = get_len_vivos(:pueblo, gameInfo)
 
     timestamp = Timing.get_time(:transicion)
     cond do
@@ -148,12 +169,20 @@ defmodule Lmafia.Mafia do
   end  
 
   def handle_info(:goodEnding, gameInfo) do
-    # TODO: Good ending (GANO EL PUEBLO)    
+    users = get_jugadores(:all, gameInfo)
+    mensaje = "Gano el pueblo!!!!"
+    {:ok, json} = Jason.encode(%{type: "action", action: "goodEnding", mensaje: mensaje})
+    multicast(users,json)
+
     {:noreply, gameInfo}
   end
 
   def handle_info(:badEnding, gameInfo) do
-    # TODO: Bad ending  (GANO LA MAFIA)
+    users = get_jugadores(:all, gameInfo)
+    mensaje = "Ganaron los mafiosos :( "
+    {:ok, json} = Jason.encode(%{type: "action", action: "badEnding", mensaje: mensaje})
+    multicast(users,json)
+
     {:noreply, gameInfo}
   end
 
@@ -161,6 +190,7 @@ defmodule Lmafia.Mafia do
     players = gameInfo.mafiosos ++ gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias ++ gameInfo.muertos
     players = Enum.shuffle(players)
     Enum.map(players, fn x -> if x.alive do x end end)      
+  end 
 
   defp get_jugadores(:vivos,gameInfo) do 
     players = gameInfo.mafiosos ++ gameInfo.medicos ++ gameInfo.aldeanos ++ gameInfo.policias
@@ -168,7 +198,13 @@ defmodule Lmafia.Mafia do
     Enum.map(players, fn x -> if x.alive do x end end)      
   end
 
-  defp get_len_vivos_grupo(grupo), do: Enum.count(grupo, fn x -> x.alive end)
+  defp get_len_vivos(:mafiosos, gameInfo), do: Enum.count(gameInfo.mafiosos, fn x -> x.alive end)
+  defp get_len_vivos(:policias, gameInfo), do: Enum.count(gameInfo.policias, fn x -> x.alive end)
+  defp get_len_vivos(:aldeanos, gameInfo), do: Enum.count(gameInfo.aldeanos, fn x -> x.alive end)
+  defp get_len_vivos(:medicos, gameInfo), do: Enum.count(gameInfo.medicos, fn x -> x.alive end)
+  defp get_len_vivos(:pueblo, gameInfo) do
+    get_len_vivos(:aldeanos, gameInfo) + get_len_vivos(:policias, gameInfo) + get_len_vivos(:medicos, gameInfo) 
+  end 
 
   defp kill(nil, gameInfo), do: gameInfo 
   defp kill(userName, gameInfo), do: changeAliveState(userName, false, gameInfo)
@@ -191,6 +227,22 @@ defmodule Lmafia.Mafia do
       else
         x
       end end)
+  end
+
+  defp user_pasa_a_muertos(gameInfo, nil), do: gameInfo
+
+  defp user_pasa_a_muertos(gameInfo, userName) do
+    {mafiosos_muertos,mafiosos} = user_en_grupo_pasa_a_muertos(gameInfo.mafiosos, userName)
+    {aldeanos_muertos,aldeanos} = user_en_grupo_pasa_a_muertos(gameInfo.aldeanos, userName)
+    {policias_muertos,policias} = user_en_grupo_pasa_a_muertos(gameInfo.policias, userName)
+    {medicos_muertos,medicos}   = user_en_grupo_pasa_a_muertos(gameInfo.medicos , userName)
+
+    muertos = gameInfo.muertos ++ medicos_muertos ++ mafiosos_muertos ++ aldeanos_muertos ++ policias_muertos   
+    %{gameInfo | aldeanos: aldeanos, mafiosos: mafiosos ,medicos:  medicos, policias:  policias, muertos: muertos}
+  end
+
+  defp user_en_grupo_pasa_a_muertos(lista_grupo, userName) do
+    Enum.split_with(lista_grupo, fn player -> player.userName == userName end)
   end
 
   defp setCharacters(gameInfo, players) do
@@ -234,13 +286,14 @@ defmodule Lmafia.Mafia do
     winner
   end
 
-  defp get_night_result(gameInfo) do 
+  defp night_result(gameInfo) do 
     # TODO: Programar casos
-    result = ''
+    result = ""
     if gameInfo.victimSelect do 
       if gameInfo.victimSelect in gameInfo.saveSelect do 
         result = "La mafia quizo asesinar a " <> gameInfo.victimSelect <> " pero fue salvado por los medicos"
       else
+        gameInfo = user_pasa_a_muertos(gameInfo,gameInfo.victimSelect)
         result = "La mafia asesino a " <> gameInfo.victimSelect 
         if gameInfo.victimSelect in gameInfo.sobredosis do 
           result = result <> " y mientras agonizaba recibio una sobredosis de cura"
@@ -253,10 +306,16 @@ defmodule Lmafia.Mafia do
     result = result <> "\nMuertos por sobredosis:\n"
     Enum.each(gameInfo.sobredosis, fn name -> 
       if name != gameInfo.victimSelect do 
+        gameInfo = user_pasa_a_muertos(gameInfo,name)
         result = result <> name       
       end  
     end)
 
+    {result,reset_selectors(gameInfo)}
+  end 
+
+  defp reset_selectors(gameInfo) do 
+    %{gameInfo | victimSelect: nil, saveSelect: [], sobredosis: []}
   end 
 
   defp isMafia(mafiosos, username ) do
