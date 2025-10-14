@@ -33,7 +33,6 @@ function connectWebSocket(){
         console.log(data)
         switch (data.type){
             case "users": 
-
                 setPlayers(data.users);
                 break;
             case "characterSet": 

@@ -23,13 +23,13 @@ defmodule  Mweb.WSroom do
       {:ok, %{"type" => "ping"}} -> # Para mantener la conexion abierta
         {:reply, {:text, Jason.encode!(%{type: "pong"})}, state}
       {:ok, %{"type" => "victimSelect", "roomId" => roomId, "victim" => victim}} -> # Momento que deciden la victima
-        GenServer.cast(RoomStore.getRoom(roomId), {:victimSelect, victim})
+        GenServer.call(RoomStore.getRoom(roomId), {:gameAction, {:victimSelect, victim}})
         {:ok, state}
       {:ok, %{"type" => "saveSelect", "roomId" => roomId, "saved" => player}} -> # Momento que deciden el salvado
-        GenServer.cast(RoomStore.getRoom(roomId), {:saveSelect, player})
+        GenServer.call(RoomStore.getRoom(roomId), {:gameAction,{:saveSelect, player}})
         {:ok, state}
       {:ok, %{"type" => "guiltySelect", "roomId" => roomId, "guilty" => player}} -> # Se devuelve si es asesino o no
-        isMafiaAnswer = GenServer.call(RoomStore.getRoom(roomId), {:isMafia, player})
+        isMafiaAnswer = GenServer.call(RoomStore.getRoom(roomId), {:gameAction, {:isMafia, player}})
         timestamp = Timing.get_timestamp_stage(:transicion)
         {:reply, {:text, Jason.encode!(%{type: "action", action: "guiltyAnswer", answer: isMafiaAnswer, timestamp_guilty_answer: timestamp})}, state}        
       {:ok, %{"type" => "finalVoteSelect", "roomId" => roomId, "voted" => player}} -> # Momento que deciden el salvado
@@ -48,7 +48,7 @@ defmodule  Mweb.WSroom do
   def terminate(_reason, req, _status) do
     [_padd, _ws, roomId, userId] = String.split(req.path, "/")
 
-    # PROBLEMA borro por nombre => si hay nombres repetidos borro a todos los q tienen ese nombre
+    
     GenServer.cast(RoomStore.getRoom(roomId), {:removePlayer, userId})
 
     :ok

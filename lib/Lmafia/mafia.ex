@@ -34,25 +34,27 @@ defmodule Lmafia.Mafia do
     {:noreply, gameInfo}
   end
 
-  def handle_cast({:victimSelect, victimId}, gameInfo) do
-    GenServer.cast(gameInfo.votacion, {:addVote, victimId})
-#    {:noreply, kill(saveId, gameInfo)}
-    {:noreply, gameInfo}
-  end
-
-  def handle_cast({:saveSelect, saveId}, gameInfo) do
-    GenServer.cast(gameInfo.votacion, {:addVote, saveId})
-#    {:noreply, revive(saveId, gameInfo)}
-    {:noreply, gameInfo}
-  end
-
   def handle_cast({:finalVoteSelect, voted}, gameInfo) do
     GenServer.cast(gameInfo.votacion, {:addVote, voted})
     {:noreply, gameInfo}
   end
 
-  def handle_call({:isMafia, userName}, _pid, gameInfo) do
-    {:reply, isMafia(gameInfo.mafiosos,userName), gameInfo}
+  def handle_call({:victimSelect, victimId},_pid, gameInfo) do
+    GenServer.cast(gameInfo.votacion, {:addVote, victimId})
+    {:reply, nil, gameInfo}
+  end
+
+  def handle_call({:saveSelect, saveId},_pid, gameInfo) do
+    GenServer.cast(gameInfo.votacion, {:addVote, saveId})
+    {:reply,nil, gameInfo}
+  end
+
+  def handle_call({:isMafia, suspectId},_pid,state) when suspectId != nil do
+    {:reply, isMafia(gameInfo.mafiosos,userName), state}
+  end
+
+  def handle_call({:isMafia, nil},_pid,state) do
+    {:reply, "No ingreso sospecha, perdió el turno", state}
   end
 
   def handle_info(:selectVictim, gameInfo) do
@@ -85,7 +87,6 @@ defmodule Lmafia.Mafia do
 
   def handle_info(:cure, gameInfo) do
     {sobredosis, curados} = getWin(gameInfo, :medics)
-#    gameInfo = revive(curados, gameInfo)
     gameInfo = %{gameInfo | saveSelect: curados, sobredosis: sobredosis}
 
     Process.send_after(self(), :policias, Timing.get_time(:transicion)) # Al segundo levanto a los medicos

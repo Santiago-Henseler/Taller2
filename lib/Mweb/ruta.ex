@@ -8,12 +8,14 @@ defmodule Mweb.Ruta do
   end
 
   # Endpoint para chequear si se puede unir a una room
-  def call(conn = %{method: "POST", path_info: [roomId, "joinRoom"]}, _state) do
+  def call(conn = %{method: "POST", path_info: [userId, roomId, "joinRoom"]}, _state) do
     roomPid = RoomStore.getRoom(roomId)
     # TODO: si la room ya contiene un usuario con ese nombre modificar el nombre
     if roomPid != nil do
-      if GenServer.call(roomPid, {:canJoin}) do
-        send_whit_cors(conn, 201, roomId)
+      if GenServer.call(roomPid, :canJoin) do
+        name = GenServer.call(roomPid, {:getName, userId})
+        {:ok, json} = Jason.encode(%{type: "canJoin", playerName: name, roomId: roomId})
+        send_whit_cors(conn, 201, json)
       else
         send_whit_cors(conn, 404, "Room is full")
       end
@@ -25,12 +27,7 @@ defmodule Mweb.Ruta do
 
   # Endpoint para crear nuevas rooms
   def call(conn = %{method: "POST", path_info: ["newRoom"]}, _state) do
-    roomId = Enum.random(0.. 2**20)
-    {:ok, roomPid} = GenServer.start(Mweb.RoomManager.Room, roomId)
-
-    RoomStore.addRoom(roomId, roomPid)
-
-    send_whit_cors(conn, 201, Integer.to_string(roomId))
+    send_whit_cors(conn, 201, RoomStore.createRoom())
   end
 
   # Endpoint para obtener todas las rooms actuales
@@ -43,7 +40,7 @@ defmodule Mweb.Ruta do
   def call(conn = %{method: "GET", path_info: [roomId]},  _state) do
     roomPid = RoomStore.getRoom(roomId)
 
-    jugadores = GenServer.call(roomPid, {:getPlayers})
+    jugadores = GenServer.call(roomPid, :getPlayers)
     {:ok, json} = Jason.encode(Enum.map(jugadores, fn p -> p.userName end))
     send_whit_cors(conn, 200, json)
   end

@@ -7,7 +7,7 @@ defmodule Mweb.RoomManager.RoomStore do
   def start_link([]), do: GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
 
   # Casteos para llamar mas lindo al GenServer
-  def addRoom(roomId, roomPid), do: GenServer.cast(__MODULE__, {:addRoom, roomId, roomPid})
+  def createRoom(), do: GenServer.call(__MODULE__, {:createRoom})
   def removeRoom(roomId), do: GenServer.cast(__MODULE__, {:removeRoom, roomId})
   def getRooms(), do: GenServer.call(__MODULE__, {:getRooms})
   def getRoom(roomId), do: GenServer.call(__MODULE__, {:getRoom, roomId})
@@ -21,20 +21,18 @@ defmodule Mweb.RoomManager.RoomStore do
     {:noreply, rooms}
   end
 
-  def handle_cast({:addRoom, roomId, roomPid}, rooms) when is_integer(roomId) do
-    rooms = Map.put(rooms, roomId, roomPid)
-    {:noreply, rooms}
-  end
-
-  def handle_cast({:addRoom, roomId, roomPid}, rooms) do
-    rooms = Map.put(rooms, String.to_integer(roomId), roomPid)
-    {:noreply, rooms}
-  end
-
   def handle_cast({:removeRoom, roomId}, rooms) do
     # Deberia eliminar el proceso??
     rooms = Map.delete(rooms, roomId)
     {:noreply, rooms}
+  end
+
+  def handle_call({:createRoom}, rooms) do
+    roomId = Enum.random(0.. 2**20)
+    {:ok, roomPid} = GenServer.start(Mweb.RoomManager.Room, roomId)
+
+    rooms = Map.put(rooms, roomId, roomPid)
+    {:reply, roomId, rooms}
   end
 
   def handle_call({:getRooms}, _pid, rooms) do

@@ -18,23 +18,6 @@ defmodule Mweb.RoomManager.Room do
     {:noreply, state}
   end
 
-  def handle_cast({:addPlayer, pid, userId}, state) do
-    id = %{userName: userId, pid: pid, alive: true}
-    state = %{state | players: state.players ++ [id]}
-
-    sendPlayers(state)
-
-    state =
-      if length(state.players) == Constantes.nJUGADORES and not state.start do
-        GenServer.cast(state.gameController, {:start, state.players})
-        %{state | start: true}
-      else
-        state
-      end
-
-    {:noreply, state}
-  end
-
   def handle_cast({:removePlayer, userId},state) do
 
     new_state = %{state | players: Enum.reject(state.players, fn player -> player.userName == userId end)}
@@ -50,38 +33,49 @@ defmodule Mweb.RoomManager.Room do
 
   end
 
-  def handle_cast({:victimSelect, victimId},state) do
-
-    GenServer.cast(state.gameController, {:victimSelect, victimId})
-
-    {:noreply, state}
+  def handle_call({:gameAction, action}) do
+    {:reply, GenServer.call(state.gameController, action),state}
   end
 
-  def handle_cast({:saveSelect, saveId},state) do
+  def handle_call({:addPlayer, pid, userId}, _pid, state) do
 
-    GenServer.cast(state.gameController, {:saveSelect, saveId})
+    id = %{userName: userId, pid: pid, alive: true}
+    state = %{state | players: state.players ++ [id]}
 
-    {:noreply, state}
+    sendPlayers(state)
+
+    state =
+      if length(state.players) == Constantes.nJUGADORES and not state.start do
+        GenServer.cast(state.gameController, {:start, state.players})
+        %{state | start: true}
+      else
+        state
+      end
+
+    {:reply,name, state}
   end
 
-  def handle_call({:isMafia, suspectId},_pid,state) when suspectId != nil do
-    {:reply, GenServer.call(state.gameController, {:isMafia, suspectId}), state}
-  end
-
-  def handle_call({:isMafia, nil},_pid,state) do
-    {:reply, "No ingreso sospecha, perdió el turno", state}
-  end
-
-  def handle_call({:getPlayers}, _pid, state) do
+  def handle_call(:getPlayers, _pid, state) do
     {:reply, state.players, state}
   end
 
-  def handle_call({:canJoin}, _pid, state) do
+  def handle_call(:canJoin, _pid, state) do
     if state.start do
       {:reply, false, state}
     end
 
     {:reply, length(state.players) < Constantes.nJUGADORES, state}
+  end
+
+  def handle_call({:getName, userId}, _pid, state) do
+    
+    name = 
+    case existPlayer(userId) do
+      true => userId <> "_" <> Integer.to_string(Enum.random(0.. 2**20))
+      false => userId
+    end
+
+    {:reply, name, state}
   end
 
   def handle_call(request, _pid, state) do
@@ -95,5 +89,11 @@ defmodule Mweb.RoomManager.Room do
     end
   end
 
-
+  defp existPlayer(username, state) do
+    
+    case Enum.find(state.players, fn p -> p.userName == username end) do
+      nil => false 
+      _   => true
+    end
+  end
 end

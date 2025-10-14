@@ -32,10 +32,11 @@ function joinRoom(id){
 
     roomId = id
 
-    fetch("http://localhost:4000/"+roomId+"/joinRoom/", {method: "POST"})
-    .then(response => response.text())
+    fetch("http://localhost:4000/"+playerName+"/"+roomId+"/joinRoom/", {method: "POST"})
+    .then(response => response.json())
     .then(data => {
-        header.innerHTML += `<center><h1>Room Id: ${data}</h1></center>`
+        playerName = data.playerName
+        header.innerHTML += `<center><h1>Room Id: ${data.roomId}</h1></center>`
         document.getElementById("roomSelection").style.display = "none"
         connectWebSocket();
     });
