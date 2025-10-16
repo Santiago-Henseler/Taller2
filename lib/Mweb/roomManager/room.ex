@@ -30,14 +30,9 @@ defmodule Mweb.RoomManager.Room do
     end
 
     {:noreply, new_state}
-
   end
 
-  def handle_call({:gameAction, action}) do
-    {:reply, GenServer.call(state.gameController, action),state}
-  end
-
-  def handle_call({:addPlayer, pid, userId}, _pid, state) do
+  def handle_cast({:addPlayer, pid, userId}, _pid, state) do
 
     id = %{userName: userId, pid: pid, alive: true}
     state = %{state | players: state.players ++ [id]}
@@ -52,7 +47,11 @@ defmodule Mweb.RoomManager.Room do
         state
       end
 
-    {:reply,name, state}
+    {:noreply, state}
+  end
+
+  def handle_call({:gameAction, action},state) do
+    {:reply, GenServer.call(state.gameController, action),state}
   end
 
   def handle_call(:getPlayers, _pid, state) do
@@ -68,11 +67,11 @@ defmodule Mweb.RoomManager.Room do
   end
 
   def handle_call({:getName, userId}, _pid, state) do
-    
-    name = 
-    case existPlayer(userId) do
-      true => userId <> "_" <> Integer.to_string(Enum.random(0.. 2**20))
-      false => userId
+
+    name =
+    case existPlayer(userId, state) do
+      true  -> userId <> "_" <> Integer.to_string(Enum.random(0.. 2**20))
+      false -> userId
     end
 
     {:reply, name, state}
@@ -90,10 +89,10 @@ defmodule Mweb.RoomManager.Room do
   end
 
   defp existPlayer(username, state) do
-    
+
     case Enum.find(state.players, fn p -> p.userName == username end) do
-      nil => false 
-      _   => true
+      nil -> false
+      _   -> true
     end
   end
 end
